@@ -22,6 +22,15 @@ module spi_reg #(
     input  logic [7:0] status
 );
 
+  // Forward declarations (used before their defining always blocks)
+  logic [ADDR_W-1:0] addr;
+  logic reg_rw;
+  logic [REG_W-1:0] data;
+  logic dv;
+  logic [REG_W-1:0] tx_buffer;
+  logic [3:0] rx_buffer_counter;
+  logic [3:0] tx_buffer_counter;
+
   // Map to outputs
   assign reg_addr = addr;
   assign reg_data_o = data;
@@ -178,9 +187,6 @@ module spi_reg #(
     end
   end
 
-  // RX General counter
-  logic [3:0] rx_buffer_counter;
-
   // RX Buffer Counter
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
@@ -195,10 +201,6 @@ module spi_reg #(
       end
     end
   end
-
-  // Addr and Read/Write Command register
-  logic [ADDR_W-1:0] addr;
-  logic reg_rw;
 
   // Addr and Read/Write Command Registers
   always_ff @(negedge(rstb) or posedge(clk)) begin
@@ -215,11 +217,7 @@ module spi_reg #(
     end
   end
 
-  // Data register and data valid strobe
-  logic [REG_W-1:0] data;
-  logic dv;
-
-    // Data and DataValid (dv) Registers
+  // Data and DataValid (dv) Registers
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
       data <= '0;
@@ -235,9 +233,6 @@ module spi_reg #(
     end
   end
 
-  // TX General counter
-  logic [3:0] tx_buffer_counter;
-    
   // TX Buffer counter
   always_ff @(negedge(rstb) or posedge(clk)) begin
     if (!rstb) begin
@@ -252,9 +247,6 @@ module spi_reg #(
       end
     end
   end 
-
-  // TX Buffer
-  logic [REG_W-1:0] tx_buffer;
 
   // TX Buffer
   always_ff @(negedge(rstb) or posedge(clk)) begin

@@ -8,19 +8,19 @@ from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
 def get_bit(value, bit_index):
-  temp = value & (1 << bit_index)
+  temp = int(value) & (1 << bit_index)
   return temp
 
 def set_bit(value, bit_index):
-  temp = value | (1 << bit_index)
+  temp = int(value) | (1 << bit_index)
   return temp
 
 def clear_bit(value, bit_index):
-  temp = value & ~(1 << bit_index)
+  temp = int(value) & ~(1 << bit_index)
   return temp
 
 def xor_bit(value, bit_index):
-  temp = value ^ (1 << bit_index)
+  temp = int(value) ^ (1 << bit_index)
   return temp
 
 def pull_cs_high(value):
