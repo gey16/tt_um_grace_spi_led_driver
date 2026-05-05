@@ -13,7 +13,7 @@ module register_file #(
 input logic clk,            // main TT 50 MHz system clock
 input logic rst_n,          // reset signal (default = 1, run normally)
 input logic ena,            // TT enable signal, used to "select" your design (1 = chip selected)
-output logic [6:0] uo_out,   // TT output signals 6:0 are mapped to LEDs
+output logic [7:0] uo_out,   // TT output signals 7:0 are mapped to LEDs
 
 // Register R/W Signals 
 input logic [ADDR_W-1:0] reg_addr,      // decoded register addr for r/w
@@ -54,14 +54,15 @@ end
 assign reg_data_i = registers[reg_addr];
 
 // Update LED Settings 
-// each led 6:0 mapped to bit 7 of its corresponding register
-// Enable signal = bit 0 of register 7
-assign uo_out[0] = registers[7][0] && registers[0][7];
-assign uo_out[1] = registers[7][0] && registers[1][7];
-assign uo_out[2] = registers[7][0] && registers[2][7];
-assign uo_out[3] = registers[7][0] && registers[3][7];
-assign uo_out[4] = registers[7][0] && registers[4][7];
-assign uo_out[5] = registers[7][0] && registers[5][7];
-assign uo_out[6] = registers[7][0] && registers[6][7];
+// each led 7:0 mapped to bit 7 of its corresponding register
+// Enable signal = bit 0 of CTRL register (#8)
+assign uo_out[0] = registers[8][0] && registers[0][7];
+assign uo_out[1] = registers[8][0] && registers[1][7];
+assign uo_out[2] = registers[8][0] && registers[2][7];
+assign uo_out[3] = registers[8][0] && registers[3][7];
+assign uo_out[4] = registers[8][0] && registers[4][7];
+assign uo_out[5] = registers[8][0] && registers[5][7];
+assign uo_out[6] = registers[8][0] && registers[6][7];
+assign uo_out[7] = registers[8][0] && registers[7][7];
 
 endmodule

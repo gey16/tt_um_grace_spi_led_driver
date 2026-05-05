@@ -137,11 +137,11 @@ module spi_slave #(
                     // Sample rx_buffer: bottom 4 bits -> reg_addr, top_bit -> reg_rw
                     sample_addr = 1'b1;
                     // if r/w bit is 0 (master read) ... slave has to TX/send return data 
-                    if (reg_rw == 1'b0) begin
+                    if (rx_buffer[REG_W-1] == 1'b0) begin
                         next_state = STATE_TX_DATA;
                     end
                     // else if r/w bit is 1 (master write) ... slave has to RX/place data into registers
-                    else if (reg_rw == 1'b1) begin
+                    else if (rx_buffer[REG_W-1]  == 1'b1) begin
                         next_state = STATE_RX_DATA;
                     end
                 end

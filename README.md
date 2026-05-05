@@ -10,6 +10,28 @@ Tiny Tapeout is an educational project that aims to make it easier and cheaper t
 
 To learn more and get started, visit https://tinytapeout.com.
 
+## Running simulations locally
+
+The cocotb testbench requires a Python virtual environment with cocotb and its dependencies installed.
+
+**Activate the virtual environment before running `make`:**
+
+```bash
+source ~/tt/venv/bin/activate
+cd test
+make
+```
+
+Why: cocotb is a Python package that drives the simulator (Icarus Verilog) from Python testbenches. The venv isolates its dependencies from your system Python so versions don't conflict. Without it, `cocotb-config` won't be found and `make` will fail.
+
+Waveform output is written to `test/tb.vcd`. View it with:
+
+```bash
+surfer test/tb.vcd
+```
+
+---
+
 ## Set up your Verilog project
 
 1. Add your Verilog files to the `src` folder.
