@@ -15,18 +15,18 @@ Grace is building her own custom Tiny Tapeout design called **tt_um_grace_spi_le
 ```
 RP2040 (SPI master)
     ↓ CS, SCLK, MOSI / ↑ MISO
-tt_um_grace_spi_led.v  (top-level, maps TT pins to named signals)
+tt_um_grace_spi_led.sv  (top-level, maps TT pins to named signals)
     ↓
 synchronizer.sv        (2-flop CDC for spi_cs_n, spi_clk, spi_mosi)
     ↓
-spi_slave.sv           (SPI FSM — decodes transactions, drives register file)  ← CURRENTLY BUILDING
+spi_slave.sv           (SPI FSM — decodes transactions, drives register file)
     ↓
-register_file.sv       (16 × 8-bit registers)                                  ← NOT YET STARTED
+register_file.sv       (16 × 8-bit registers)
     ↓
-uo_out[6:0]            (7 LED outputs via TT output pins)
+uo_out[7:0]            (8 LED outputs via TT output pins)
 ```
 
-Reference implementation studied: **calonso88/tt07_alu_74181** — a working TT design with a very similar SPI stack. Key file: `src/spi_reg.sv`.
+Reference implementation studied: **calonso88/tt07_alu_74181** — a working TT design with a very similar SPI stack. Key file: `src/calonso_ref/spi_reg.sv`.
 
 Architecture diagrams (HTML, open in browser):
 - `/Users/grace/Career/AI_ChipDesign/tiny_tapeout/architecture_diagram.html` — module hierarchy
@@ -41,16 +41,7 @@ Goals: get calonso's tests passing on macOS, understand the repo architecture en
 ### Fixes applied to calonso's repo (branch: dev/grace, fork: gey16/tt07_alu_74181)
 
 **1. Icarus Verilog 13 "declaration after use" — `src/spi_reg.sv`**
-Icarus 13 enforces strict declaration-before-use. Fixed by adding forward declarations at the top of the module before the `assign` statements:
-```systemverilog
-logic [ADDR_W-1:0] addr;
-logic reg_rw;
-logic [REG_W-1:0] data;
-logic dv;
-logic [REG_W-1:0] tx_buffer;
-logic [3:0] rx_buffer_counter;
-logic [3:0] tx_buffer_counter;
-```
+Icarus 13 enforces strict declaration-before-use. Fixed by adding forward declarations at the top of the module before the `assign` statements.
 
 **2. cocotb 2.0 `LogicArray` TypeError — `test/test.py`**
 cocotb 2.0 returns `LogicArray` from `.value`; bitwise ops need `int()`. Fixed in four helper functions:
@@ -61,8 +52,6 @@ def clear_bit(value, bit_index): temp = int(value) & ~(1 << bit_index)
 def xor_bit(value, bit_index):   temp = int(value) ^ (1 << bit_index)
 ```
 
-Both changes documented in `test/TEST_CHANGES.md`.
-
 ### Concepts Grace now understands
 - TT chip pin mapping: `uio_in[0]`=CS, `uio_in[3]`=SCLK, `uio_in[1]`=MOSI, `uio_out[2]`=MISO
 - SPI protocol: CS active-low, CPOL=0/CPHA=0 (sample on rising SCLK), 16-bit transaction format
@@ -70,13 +59,38 @@ Both changes documented in `test/TEST_CHANGES.md`.
 - VCD waveform viewing with Surfer (GTKWave incompatible with macOS 14+; installed via `brew install surfer`)
 - cocotb test structure: how `spi_write()` in test.py maps to pin wiggles maps to module behavior
 - calonso's FSM state machine: IDLE → ADDR → RX/TX → IDLE
-- Edge detectors: how `falling_edge_detector` and `rising_edge_detector` work (see below)
+- Edge detectors: how `falling_edge_detector` and `rising_edge_detector` work
+- `tb.v` vs `test.py` roles: tb.v is the Verilog shim cocotb attaches to; test.py is the Python test driver
+- TT bidir pins: `uio_in`/`uio_out`/`uio_oe` work together — `uio_oe[n]` sets direction, then either `uio_in[n]` or `uio_out[n]` is active
+- Makefile mechanics: `SIM_BUILD`, `VERILOG_SOURCES`, `addprefix`, `TOPLEVEL`, `MODULE`, inline comments cause trailing-whitespace bugs
 
 ---
 
-## Week 2 — IN PROGRESS
+## Week 2 — COMPLETE
 
-Goal: write `spi_slave.sv` from scratch. Exit criterion: a write transaction correctly updates an internal 16-byte memory in simulation.
+Goals: write all RTL modules from scratch, write cocotb test infrastructure from scratch, get a passing write transaction test in simulation.
+
+### Exit criterion met
+A complete SPI master-write transaction (CS low → 16 bits clocked in → CS high) correctly updates the register file and drives `uo_out` LEDs. Test passes with assertions verifying LED on/off state.
+
+### What was built this week
+
+**RTL modules (all in `src/`):**
+- `spi_slave.sv` — SPI FSM, write path fully working
+- `register_file.sv` — 16 × 8-bit registers, LED output logic
+- `tt_um_grace_spi_led.sv` — top-level TT wrapper, pin mapping, synchronizer + spi_slave + register_file instantiation
+- `synchronizer.sv` — 2-flop CDC (instantiates `reclocking.sv`)
+- `reclocking.sv` — single flip-flop stage
+- `rising_edge_detector.sv`, `falling_edge_detector.sv` — Grace's own versions (use `rst_n` port name)
+
+**Test infrastructure (all in `test/`):**
+- `tb.v` — Verilog testbench shim for cocotb
+- `test.py` — cocotb test: reset, SPI write to reg 8 (enable), SPI write to reg 0 (LED data), assert `uo_out`
+- `Makefile` — updated for Grace's sources; calonso sources removed
+
+**Repo reorganization:**
+- Calonso's original src files moved to `src/calonso_ref/`
+- Calonso's original test files moved to `test/calonso_ref/`
 
 ### SPI packet format (16 bits, MSB first)
 
@@ -94,62 +108,48 @@ CS stays LOW for the entire 16-bit transaction.
 Data sampled on rising edge of spi_clk (CPHA=0).
 ```
 
+### Key bug discovered and fixed: reg_rw timing
+
+In `spi_slave.sv` STATE_ADDR, the FSM originally checked the registered `reg_rw` signal to decide whether to transition to STATE_RX_DATA or STATE_TX_DATA. But `reg_rw` is updated by an `always_ff` block one cycle *after* `sample_addr` fires — so the FSM always saw the stale value (0 = read at reset), sending every transaction to STATE_TX_DATA.
+
+**Fix:** in the `always_comb` next-state block, check `rx_buffer[REG_W-1]` directly instead of `reg_rw`. The rx_buffer already has the correct value at the moment the counter hits 8.
+
+```systemverilog
+// WRONG — stale by one cycle:
+if (reg_rw == 1'b1) next_state = STATE_RX_DATA;
+
+// CORRECT — read directly from rx_buffer:
+if (rx_buffer[REG_W-1] == 1'b1) next_state = STATE_RX_DATA;
+```
+
+### Makefile gotcha: inline comments cause trailing-whitespace bugs
+
+In GNU Make, tabs/spaces before a `#` comment on a variable assignment line are included in the variable value. This caused `$(addprefix $(SRC_DIR)/,...)` to produce paths split on whitespace (e.g. `/path/to/src` and `/file.sv` as two separate words instead of `/path/to/src/file.sv`).
+
+**Fix:** never put inline comments on variable assignment lines. Put comments on their own line above. Also use `$(strip ...)` for safety on path variables:
+```makefile
+# path to RTL source files
+SRC_DIR := $(strip $(CURDIR)/../src)
+```
+
 ---
 
-## Current state of `src/spi_slave.sv`
+## Running the tests
 
-File path: `/Users/grace/tt/tt07_alu_74181/src/spi_slave.sv`
-
-### What is DONE and correct
-
-- Module port declaration (parameters, all I/O ports)
-- Header comment with SPI packet format diagram
-- Edge detector submodule instantiations (sof, eof, spi_clk_pos)
-- FSM typedef enum: `STATE_IDLE, STATE_ADDR, STATE_RX_DATA, STATE_TX_DATA`
-- FSM state register `always_ff` block
-- FSM next-state `always_comb` block (all 4 states, correct transitions, correct control signal pulses, eof abort cases)
-- Internal signal declarations (`rx_buffer`, `rx_buffer_counter`, `reg_rw`, `spi_clk_pos`, `tx_buffer_load`, `sample_addr`, `sample_data`)
-- RX buffer `always_ff` — shifts MOSI in on each `spi_clk_pos`
-- RX buffer counter `always_ff` — resets at 8, increments on `spi_clk_pos`
-- addr + reg_rw register `always_ff` — latches on `sample_addr`, correct slices
-- Data output register `always_ff` — structure correct, **one bug remaining (see below)**
-
-### Known bugs / issues to fix
-
-**1. Line 51 — syntax error: space in module name**
-```systemverilog
-// WRONG:
-falling edge_detector falling_edge_detector_sof (
-// CORRECT:
-falling_edge_detector falling_edge_detector_sof (
+```bash
+cd /Users/grace/tt/tt_um_grace_spi_led/test
+make        # run tests
+make log    # run tests + save output to test/test_run.log
 ```
-The module is called `falling_edge_detector` (one word). This will cause a compile error.
 
-**2. Lines 257-260 — data output register: wrong assignment**
-```systemverilog
-// WRONG — this is a shift operation (one bit at a time), not a latch:
-reg_data_o <= {reg_data_o, rx_buffer[REG_W-1]};
-
-// CORRECT — sample_data fires once when full byte is in rx_buffer; just latch it:
-reg_data_o <= rx_buffer;
+Tests pass on macOS with Icarus Verilog 13 + cocotb 2.0.1. VCD output: `test/tb.vcd`, view with:
+```bash
+surfer /Users/grace/tt/tt_um_grace_spi_led/test/tb.vcd
 ```
-Comments on those lines are also wrong — they describe the RX buffer shift behavior, not this block. Update to: "latch completed rx_buffer into output register".
 
-**3. Edge detector port name mismatch: `rst_n` vs `rstb`**
-The existing `falling_edge_detector.sv` and `rising_edge_detector.sv` in `src/` use port name `rstb`, but Grace's instantiations connect `.rst_n(rst_n)`. This will cause a port connection error at compile time. Options:
-  - Write her own edge detector modules with port name `rst_n` (preferred — good learning exercise)
-  - Or rename the connections to `.rstb(rst_n)` to match the existing modules
+Test log: `test/test_run.log` (contains cocotb `dut._log.info` output + pass/fail results).
 
-**4. `tx_buffer_counter` used but not declared or implemented**
-STATE_TX_DATA references `tx_buffer_counter` but it is never declared as a signal and there is no `always_ff` block for it. The TX path (slave sending data back on MISO) is entirely unimplemented.
-
-### What is NOT YET STARTED
-
-- **TX path**: `tx_buffer`, `tx_buffer_counter`, `spi_miso` output logic — needed for master read transactions. The FSM has STATE_TX_DATA but the data path for it is empty.
-- **`falling_edge_detector.sv` and `rising_edge_detector.sv` (Grace's own versions)** — she needs to write these with `rst_n` port name, or reuse calonso's with `.rstb(rst_n)` connections.
-- **`register_file.sv`** — 16 × 8-bit register array, not started.
-- **`tt_um_grace_spi_led.v`** — top-level TT wrapper, not started.
-- **Simulation / testbench** — no cocotb test written for Grace's design yet. Week 2 exit criterion is a passing write transaction test.
+Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.git` (confirm remote with `git remote -v`).
 
 ---
 
@@ -157,57 +157,39 @@ STATE_TX_DATA references `tx_buffer_counter` but it is never declared as a signa
 
 | File | Description |
 |------|-------------|
-| `src/spi_slave.sv` | Grace's SPI FSM (in progress) |
-| `src/spi_reg.sv` | calonso's reference SPI FSM — use for comparison |
-| `src/falling_edge_detector.sv` | calonso's edge detector (uses `rstb` port name) |
-| `src/rising_edge_detector.sv` | calonso's edge detector (uses `rstb` port name) |
+| `src/tt_um_grace_spi_led.sv` | Top-level TT wrapper |
+| `src/spi_slave.sv` | SPI FSM — write path complete, TX path stubbed out |
+| `src/register_file.sv` | 16 × 8-bit registers, LED output logic |
 | `src/synchronizer.sv` | 2-flop CDC synchronizer |
-| `src/tt_um_calonso88_74181.v` | calonso's top-level (shows TT pin mapping pattern) |
-| `test/test.py` | cocotb testbench (fixed for cocotb 2.0 + IVerilog 13) |
-| `test/TEST_CHANGES.md` | Documents the two test fixes from week 1 |
+| `src/reclocking.sv` | Single FF stage (used by synchronizer) |
+| `src/rising_edge_detector.sv` | Rising edge detector (uses `rst_n` port name) |
+| `src/falling_edge_detector.sv` | Falling edge detector (uses `rst_n` port name) |
+| `src/calonso_ref/` | calonso's original src files — reference only |
+| `test/tb.v` | Verilog testbench shim |
+| `test/test.py` | cocotb test: LED on/off via SPI write |
+| `test/Makefile` | Build config for Grace's design |
+| `test/calonso_ref/` | calonso's original test files — reference only |
+| `REFERENCE.md` | Design notes, diagrams, concept explanations |
 
 ---
 
-## How the edge detectors work (Grace had a TODO to understand these)
+## register_file.sv LED output logic
 
-Both submodules use a 1-cycle delayed copy of the input (`data_dly`) to detect transitions:
-
-```systemverilog
-// rising_edge_detector:
-assign pos_edge = data & (!data_dly);   // data is HIGH now, was LOW last cycle
-
-// falling_edge_detector:
-assign neg_edge = (!data) & data_dly;   // data is LOW now, was HIGH last cycle
+Each LED (`uo_out[n]`) is gated by a global enable bit in register 8:
 ```
-
-So they produce a **1-cycle pulse** on the system clock (`clk`) whenever the SPI signal transitions. This is how raw SPI pin signals (which change at SPI clock rate, asynchronously to system clock) get turned into clean 1-cycle pulses the FSM can act on.
-
-- `sof` = 1-cycle pulse when CS goes LOW (start of transaction)
-- `eof` = 1-cycle pulse when CS goes HIGH (end/abort of transaction)
-- `spi_clk_pos` = 1-cycle pulse on each rising edge of SPI clock (one bit arriving)
-
-The TODO comment on line 47 of spi_slave.sv can be removed — Grace understands this now.
-
----
-
-## Running the tests
-
-```bash
-cd /Users/grace/tt/tt07_alu_74181/test
-make
+uo_out[n] = registers[8][0] && registers[n][7]
 ```
-
-Tests pass on macOS with Icarus Verilog 13 + cocotb 2.0.1 after the fixes above. VCD output: `test/tb.vcd`, view with `surfer test/tb.vcd`.
-
-Git: branch `dev/grace`, fork at `gey16/tt07_alu_74181` on GitHub. Remote set to SSH: `git@github.com:gey16/tt07_alu_74181.git`.
+- Write `0x01` to register 8 to enable LED outputs globally
+- Write `0x80` to register n to turn on LED n (bit 7 = LED on)
+- Registers 0–7 → LEDs 0–7. Register 8 = CTRL (bit 0 = global enable).
 
 ---
 
 ## Immediate next steps (in order)
 
-1. Fix the two bugs in `spi_slave.sv` listed above (line 51 syntax error, line 260 wrong assignment)
-2. Decide: write own edge detector modules with `rst_n`, or fix port connections to use `.rstb(rst_n)`
-3. Implement TX path: declare `tx_buffer` and `tx_buffer_counter`, add their `always_ff` blocks, wire `spi_miso`
-4. Write `register_file.sv` (16 × 8-bit registers, write-enable strobe)
-5. Write `tt_um_grace_spi_led.v` top-level (map TT pins, instantiate synchronizer + spi_slave + register_file)
-6. Write cocotb test for a complete write transaction and verify it updates the register
+1. **Push to GitHub and get a green Actions run** — verify RTL synthesizes cleanly with OpenLane before adding more features. Do this first while the codebase is small.
+2. **Expand test coverage** — write/read all 8 LED registers (0–7) + various on/off combinations; test the enable gate (reg 8 = 0 should turn all LEDs off)
+3. **Implement TX path (SPI read)** — declare `tx_buffer` and `tx_buffer_counter`, add `always_ff` blocks, wire `spi_miso` output; implement STATE_TX_DATA in the FSM
+4. **Expand test coverage for SPI read** — after TX path implemented, add `spi_read()` helper and tests that write then read back register values
+5. **Add status register** — design the status register format (e.g. last-op-was-write bit, enable bit); wire into `spi_slave` and `register_file`
+6. **Get synthesis green after each major feature** — push to GitHub Actions after TX path, after status register

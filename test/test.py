@@ -2,6 +2,8 @@
 # cocotb Simulation Tests 
 # Grace Eysenbach
 
+import random
+
 import cocotb 
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles 
@@ -176,7 +178,7 @@ async def spi_write (clk, port, address, data):
 #async def spi_read (clk, port_in, port_out, address, data):
 
 @cocotb.test()
-async def test_project(dut):
+async def spi_write_tests(dut):
     dut._log.info("Starting Test")
 
     # Set the clock period to 10 us (100 KHz)
@@ -210,58 +212,163 @@ async def test_project(dut):
     # ITERATIONS 
     iterations = 0
 
-    while iterations < 10:
+    #TODO: increase iterations
+    while iterations < 3:
 
         # -- Enable LED Outputs -- #
         # byte1 = 1 000 1000
         # byte2 = 0000000 1
         enable_out = 0x1
-        await spi_write (dut.clk, dut.uio_in, 8, enable_out)
-        
-        # byte1 = 1 000 0000
+        disable_out = 0x0
+
         # byte2 = 1 0000000
-        led0_on  = 0x80
-        # byte1 = 1 000 0000
+        led_on  = 0x80
         # byte2 = 0 0000000
-        led0_off = 0x0
+        led_off = 0x0
+
+        # Disable LED Outputs
+        await spi_write (dut.clk, dut.uio_in, 8, disable_out)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+
+        # Turn off ALL Leds 
+        for j in range(8): 
+          await spi_write (dut.clk, dut.uio_in, j, led_off)
+
+        # Enable LED Outputs
+        await spi_write (dut.clk, dut.uio_in, 8, enable_out)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+
+        # -- Walking Ones -- # 
+        for i in range(8):
+            
+            # Turn off ALL Leds 
+            for j in range(8): 
+                await spi_write (dut.clk, dut.uio_in, j, led_off)
+
+            # Turn on 1 LED at a time
+            await spi_write (dut.clk, dut.uio_in, i, led_on)
+
+            await ClockCycles(dut.clk, 10)
+            await ClockCycles(dut.clk, 10)
+
+            # Check for any incorrect LEDs ON
+            expected_on = 1 << i
+            assert int(dut.uo_out.value) == expected_on, f"Unexpected LED still ON. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+            dut._log.info(f"i={i} wrote {led_on:#010b} → uo_out={int(dut.uo_out.value):#010b} expected={expected_on:#010b}")
+
+            await ClockCycles(dut.clk, 10)
+            await ClockCycles(dut.clk, 10)
+
+        # Turn off ALL Leds 
+        for j in range(8): 
+          await spi_write (dut.clk, dut.uio_in, j, led_off)
+
+        # -- Enable Gate Test -- #
+        # Turn on ALL Leds 
+        for j in range(8): 
+          await spi_write (dut.clk, dut.uio_in, j, led_on)
         
-        # Turn LED0 Off + On 
-        await spi_write (dut.clk, dut.uio_in, 0, led0_off)
-
+        # Disable LED Outputs
+        await spi_write (dut.clk, dut.uio_in, 8, disable_out)
         await ClockCycles(dut.clk, 10)
         await ClockCycles(dut.clk, 10)
 
-        # Check that uo_out[0] = 0
-        assert int(dut.uo_out.value) == 0x00, "LED0 should be OFF"
+        # Check that all LEDs are OFF when 
+        expected_off =  0x0
+        assert int(dut.uo_out.value) == expected_off, f"Unexpected LED ON. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+        dut._log.info(f"after disable → uo_out={int(dut.uo_out.value):#010b}")
 
-        await spi_write (dut.clk, dut.uio_in, 0, led0_on)
-
+        # Enable LED Outputs
+        await spi_write (dut.clk, dut.uio_in, 8, enable_out)
         await ClockCycles(dut.clk, 10)
         await ClockCycles(dut.clk, 10)
 
-        # Check that uo_out[0] = 1
-        assert int(dut.uo_out.value) == 0x01, "LED0 should be ON"
+        # Check that all LEDs are ON
+        expected_on =  0xFF
+        assert int(dut.uo_out.value) == expected_on, f"Unexpected LED OFF. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+        dut._log.info(f"after re-enable → uo_out={int(dut.uo_out.value):#010b}")
 
-        # TODO: expand to other LEDs 
-        # # Write reg[1] = 0xDE
-        # await spi_write (dut.clk, dut.uio_in, 1, data1)
-        # # Write reg[2] = 0xAD
-        # await spi_write (dut.clk, dut.uio_in, 2, data2)
-        # # Write reg[3] = 0xBE
-        # await spi_write (dut.clk, dut.uio_in, 3, data3)
-        # # Write reg[4] = 0xEF
-        # await spi_write (dut.clk, dut.uio_in, 4, data4)
-        # # Write reg[5] = 0x55
-        # await spi_write (dut.clk, dut.uio_in, 5, data5)
-        # # Write reg[6] = 0xAA
-        # await spi_write (dut.clk, dut.uio_in, 6, data6)
-        # # Write reg[7] = 0x0F
-        # await spi_write (dut.clk, dut.uio_in, 7, data7)
+        # -- Incremental LEDs -- #
+        # GOAL: add leds 1 at a time until all are on
+        # ensure no LEDs incorrectly turn off 
+        for i in range(8):
 
-        # Wait for some time
-        await ClockCycles(dut.clk, 10)
-        await ClockCycles(dut.clk, 10)
+          # Turn off ALL Leds 
+          for j in range(8): 
+            await spi_write (dut.clk, dut.uio_in, j, led_off)
 
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+        # Turn on 1 LED at a time
+          await spi_write (dut.clk, dut.uio_in, i, led_on)
+
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+          # Check for any incorrect LEDs ON
+          expected_on = 1 << i
+          assert int(dut.uo_out.value) == expected_on, f"Unexpected LED still ON. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+          dut._log.info(f"walk_ones i={i} wrote {led_on:#010b} → uo_out={int(dut.uo_out.value):#010b} expected={expected_on:#010b}")
+
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+          # Randomize Don't Care bits in Output register 
+          data_i = random.randint(0x00, 0xFF) | led_on
+          await spi_write (dut.clk, dut.uio_in, i, data_i)
+          assert int(dut.uo_out.value[i]) == 0x1, f"LED is not ON. Expected: 0x1, Actual: {int(dut.uo_out.value[i]):#010b}"
+          dut._log.info(f"rand_dc i={i} wrote {data_i:#010b} → uo_out[{i}]={int(dut.uo_out.value[i])}")
+
+        # -- Walking Zeros Test -- #
+        # GOAL: turn off LEDs 1-by-1 and ensure others stay on
+        for i in range(8):
+          # Turn ON ALL Leds 
+          for j in range(8): 
+            await spi_write (dut.clk, dut.uio_in, j, led_on)
+
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+        # Turn OFF 1 LED at a time
+          await spi_write (dut.clk, dut.uio_in, i, led_off)
+
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+          # Check for any incorrect LEDs OFF
+          # Ex: 00000010 --> 11111101
+          #                & 11111111 --> 11111101 --> only LED[1] should be off 
+          expected_on = ~(1 << i) & 0xFF
+          assert int(dut.uo_out.value) == expected_on, f"Unexpected LED Off. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+          dut._log.info(f"walk_zeros i={i} wrote led_off → uo_out={int(dut.uo_out.value):#010b} expected={expected_on:#010b}")
+
+          await ClockCycles(dut.clk, 10)
+          await ClockCycles(dut.clk, 10)
+
+        # -- Multi-LED Pattern Test -- #
+        # 3 loops of randomized values 
+        for loop in range(3):
+          expected_on = 0x0
+          for i in range(8):
+            # Pick a random value for led register 
+            data_i = random.randint(0x00, 0xFF)
+            await spi_write (dut.clk, dut.uio_in, i, data_i)
+
+            await ClockCycles(dut.clk, 10)
+            await ClockCycles(dut.clk, 10)
+          
+            # check if in random reg value, led (bit7) is on or off
+            if ((data_i & (1 << 7)) != 0):
+              # If ON (1), update expected output for that bit to 1
+              expected_on = expected_on | (1 << i)
+            dut._log.info(f"loop={loop} i={i} data={data_i:#010b} bit7={(data_i>>7)&1} expected_on={expected_on:#010b}")
+          
+          assert int(dut.uo_out.value) == expected_on, f"Unexpected LED Off. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+          dut._log.info(f"loop={loop} final uo_out={int(dut.uo_out.value):#010b} expected={expected_on:#010b}")
+        
         iterations = iterations + 1
     
     # Wait for some time

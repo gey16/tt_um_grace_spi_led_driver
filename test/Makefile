@@ -7,6 +7,7 @@ TOPLEVEL_LANG ?= verilog	# top-level testbench is Verilog (as opp. to VHDL)
 SRC_DIR = $(strip $(CURDIR)/../src)
 PROJECT_DIR = $(SRC_DIR)	# variable defining project director
 PROJECT_SOURCES = tt_um_grace_spi_led.sv spi_slave.sv register_file.sv reclocking.sv synchronizer.sv rising_edge_detector.sv falling_edge_detector.sv
+LOG_FILE := $(CURDIR)/test_run.log 
 ifneq ($(GATES),yes)		# How Makefile branches betwen RTL sim and gate-level sim (Make GATES=yes)
 
 # RTL simulation:
@@ -14,6 +15,10 @@ ifneq ($(GATES),yes)		# How Makefile branches betwen RTL sim and gate-level sim 
 SIM_BUILD = sim_build/rtl
 VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))		
 COMPILE_ARGS += -I$(SRC_DIR)
+
+log:
+	$(MAKE) sim 2>&1 | tee $(LOG_FILE)
+	@echo "Log written to: $(LOG_FILE)"
 
 else
 

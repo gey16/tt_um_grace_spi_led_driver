@@ -1,0 +1,207 @@
+rm -f results.xml
+"/Library/Developer/CommandLineTools/usr/bin/make" -f Makefile results.xml
+rm -f results.xml
+COCOTB_TEST_MODULES=test COCOTB_TESTCASE= COCOTB_TEST_FILTER= COCOTB_TOPLEVEL=tb TOPLEVEL_LANG=verilog	 \
+         /opt/homebrew/bin/vvp -M /Users/grace/tt/venv/lib/python3.9/site-packages/cocotb/libs -m libcocotbvpi_icarus   sim_build/rtl/sim.vvp   
+     -.--ns INFO     gpi                                ..mbed/gpi_embed.cpp:94   in _embed_init_python              Using Python 3.9.13 interpreter at /Users/grace/tt/venv/bin/python3
+     -.--ns INFO     gpi                                ../gpi/GpiCommon.cpp:79   in gpi_print_registered_impl       VPI registered
+     0.00ns INFO     cocotb                             Running on Icarus Verilog version 13.0 (stable)
+     0.00ns INFO     cocotb                             Seeding Python random module with 1778032321
+     0.00ns INFO     cocotb                             Initialized cocotb v2.0.1 from /Users/grace/tt/venv/lib/python3.9/site-packages/cocotb
+     0.00ns INFO     cocotb                             Running tests
+     0.00ns INFO     cocotb.regression                  running test.spi_write_tests (1/1)
+     0.00ns INFO     cocotb.tb                          Starting Test
+     0.00ns INFO     cocotb.tb                          Reset
+ 90000.00ns INFO     cocotb.tb                          Test SPI LED Chip Behavior
+67590000.00ns INFO     cocotb.tb                          i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+99490000.00ns INFO     cocotb.tb                          i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+131390000.00ns INFO     cocotb.tb                          i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+163290000.00ns INFO     cocotb.tb                          i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+195190000.00ns INFO     cocotb.tb                          i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+227090000.00ns INFO     cocotb.tb                          i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+258990000.00ns INFO     cocotb.tb                          i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+290890000.00ns INFO     cocotb.tb                          i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+350790000.00ns INFO     cocotb.tb                          after disable → uo_out=0b00000000
+354490000.00ns INFO     cocotb.tb                          after re-enable → uo_out=0b11111111
+386390000.00ns INFO     cocotb.tb                          walk_ones i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+390090000.00ns INFO     cocotb.tb                          rand_dc i=0 wrote 0b10010110 → uo_out[0]=1
+421990000.00ns INFO     cocotb.tb                          walk_ones i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+425690000.00ns INFO     cocotb.tb                          rand_dc i=1 wrote 0b10100110 → uo_out[1]=1
+457590000.00ns INFO     cocotb.tb                          walk_ones i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+461290000.00ns INFO     cocotb.tb                          rand_dc i=2 wrote 0b10011011 → uo_out[2]=1
+493190000.00ns INFO     cocotb.tb                          walk_ones i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+496890000.00ns INFO     cocotb.tb                          rand_dc i=3 wrote 0b10011011 → uo_out[3]=1
+528790000.00ns INFO     cocotb.tb                          walk_ones i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+532490000.00ns INFO     cocotb.tb                          rand_dc i=4 wrote 0b10101000 → uo_out[4]=1
+564390000.00ns INFO     cocotb.tb                          walk_ones i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+568090000.00ns INFO     cocotb.tb                          rand_dc i=5 wrote 0b10101001 → uo_out[5]=1
+599990000.00ns INFO     cocotb.tb                          walk_ones i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+603690000.00ns INFO     cocotb.tb                          rand_dc i=6 wrote 0b10100011 → uo_out[6]=1
+635590000.00ns INFO     cocotb.tb                          walk_ones i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+639290000.00ns INFO     cocotb.tb                          rand_dc i=7 wrote 0b10101010 → uo_out[7]=1
+671190000.00ns INFO     cocotb.tb                          walk_zeros i=0 wrote led_off → uo_out=0b11111110 expected=0b11111110
+703290000.00ns INFO     cocotb.tb                          walk_zeros i=1 wrote led_off → uo_out=0b11111101 expected=0b11111101
+735390000.00ns INFO     cocotb.tb                          walk_zeros i=2 wrote led_off → uo_out=0b11111011 expected=0b11111011
+767490000.00ns INFO     cocotb.tb                          walk_zeros i=3 wrote led_off → uo_out=0b11110111 expected=0b11110111
+799590000.00ns INFO     cocotb.tb                          walk_zeros i=4 wrote led_off → uo_out=0b11101111 expected=0b11101111
+831690000.00ns INFO     cocotb.tb                          walk_zeros i=5 wrote led_off → uo_out=0b11011111 expected=0b11011111
+863790000.00ns INFO     cocotb.tb                          walk_zeros i=6 wrote led_off → uo_out=0b10111111 expected=0b10111111
+895890000.00ns INFO     cocotb.tb                          walk_zeros i=7 wrote led_off → uo_out=0b01111111 expected=0b01111111
+899790000.00ns INFO     cocotb.tb                          loop=0 i=0 data=0b01010010 bit7=0 expected_on=0b00000000
+903490000.00ns INFO     cocotb.tb                          loop=0 i=1 data=0b00001000 bit7=0 expected_on=0b00000000
+907190000.00ns INFO     cocotb.tb                          loop=0 i=2 data=0b10111101 bit7=1 expected_on=0b00000100
+910890000.00ns INFO     cocotb.tb                          loop=0 i=3 data=0b00001110 bit7=0 expected_on=0b00000100
+914590000.00ns INFO     cocotb.tb                          loop=0 i=4 data=0b01110101 bit7=0 expected_on=0b00000100
+918290000.00ns INFO     cocotb.tb                          loop=0 i=5 data=0b11110111 bit7=1 expected_on=0b00100100
+921990000.00ns INFO     cocotb.tb                          loop=0 i=6 data=0b10010100 bit7=1 expected_on=0b01100100
+925690000.00ns INFO     cocotb.tb                          loop=0 i=7 data=0b11100101 bit7=1 expected_on=0b11100100
+925690000.00ns INFO     cocotb.tb                          loop=0 final uo_out=0b11100100 expected=0b11100100
+929390000.00ns INFO     cocotb.tb                          loop=1 i=0 data=0b11101001 bit7=1 expected_on=0b00000001
+933090000.00ns INFO     cocotb.tb                          loop=1 i=1 data=0b01101111 bit7=0 expected_on=0b00000001
+936790000.00ns INFO     cocotb.tb                          loop=1 i=2 data=0b01011111 bit7=0 expected_on=0b00000001
+940490000.00ns INFO     cocotb.tb                          loop=1 i=3 data=0b11011000 bit7=1 expected_on=0b00001001
+944190000.00ns INFO     cocotb.tb                          loop=1 i=4 data=0b11100000 bit7=1 expected_on=0b00011001
+947890000.00ns INFO     cocotb.tb                          loop=1 i=5 data=0b11111111 bit7=1 expected_on=0b00111001
+951590000.00ns INFO     cocotb.tb                          loop=1 i=6 data=0b11111101 bit7=1 expected_on=0b01111001
+955290000.00ns INFO     cocotb.tb                          loop=1 i=7 data=0b11110001 bit7=1 expected_on=0b11111001
+955290000.00ns INFO     cocotb.tb                          loop=1 final uo_out=0b11111001 expected=0b11111001
+958990000.00ns INFO     cocotb.tb                          loop=2 i=0 data=0b10101011 bit7=1 expected_on=0b00000001
+962690000.00ns INFO     cocotb.tb                          loop=2 i=1 data=0b01100111 bit7=0 expected_on=0b00000001
+966390000.00ns INFO     cocotb.tb                          loop=2 i=2 data=0b11001100 bit7=1 expected_on=0b00000101
+970090000.00ns INFO     cocotb.tb                          loop=2 i=3 data=0b11110000 bit7=1 expected_on=0b00001101
+973790000.00ns INFO     cocotb.tb                          loop=2 i=4 data=0b11101110 bit7=1 expected_on=0b00011101
+977490000.00ns INFO     cocotb.tb                          loop=2 i=5 data=0b10011011 bit7=1 expected_on=0b00111101
+981190000.00ns INFO     cocotb.tb                          loop=2 i=6 data=0b11111000 bit7=1 expected_on=0b01111101
+984890000.00ns INFO     cocotb.tb                          loop=2 i=7 data=0b10011000 bit7=1 expected_on=0b11111101
+984890000.00ns INFO     cocotb.tb                          loop=2 final uo_out=0b11111101 expected=0b11111101
+1051990000.00ns INFO     cocotb.tb                          i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+1083890000.00ns INFO     cocotb.tb                          i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+1115790000.00ns INFO     cocotb.tb                          i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+1147690000.00ns INFO     cocotb.tb                          i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+1179590000.00ns INFO     cocotb.tb                          i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+1211490000.00ns INFO     cocotb.tb                          i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+1243390000.00ns INFO     cocotb.tb                          i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+1275290000.00ns INFO     cocotb.tb                          i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+1335190000.00ns INFO     cocotb.tb                          after disable → uo_out=0b00000000
+1338890000.00ns INFO     cocotb.tb                          after re-enable → uo_out=0b11111111
+1370790000.00ns INFO     cocotb.tb                          walk_ones i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+1374490000.00ns INFO     cocotb.tb                          rand_dc i=0 wrote 0b11110101 → uo_out[0]=1
+1406390000.00ns INFO     cocotb.tb                          walk_ones i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+1410090000.00ns INFO     cocotb.tb                          rand_dc i=1 wrote 0b11010011 → uo_out[1]=1
+1441990000.00ns INFO     cocotb.tb                          walk_ones i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+1445690000.00ns INFO     cocotb.tb                          rand_dc i=2 wrote 0b11101100 → uo_out[2]=1
+1477590000.00ns INFO     cocotb.tb                          walk_ones i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+1481290000.00ns INFO     cocotb.tb                          rand_dc i=3 wrote 0b10011010 → uo_out[3]=1
+1513190000.00ns INFO     cocotb.tb                          walk_ones i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+1516890000.00ns INFO     cocotb.tb                          rand_dc i=4 wrote 0b10101101 → uo_out[4]=1
+1548790000.00ns INFO     cocotb.tb                          walk_ones i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+1552490000.00ns INFO     cocotb.tb                          rand_dc i=5 wrote 0b10100101 → uo_out[5]=1
+1584390000.00ns INFO     cocotb.tb                          walk_ones i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+1588090000.00ns INFO     cocotb.tb                          rand_dc i=6 wrote 0b10010000 → uo_out[6]=1
+1619990000.00ns INFO     cocotb.tb                          walk_ones i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+1623690000.00ns INFO     cocotb.tb                          rand_dc i=7 wrote 0b11101010 → uo_out[7]=1
+1655590000.00ns INFO     cocotb.tb                          walk_zeros i=0 wrote led_off → uo_out=0b11111110 expected=0b11111110
+1687690000.00ns INFO     cocotb.tb                          walk_zeros i=1 wrote led_off → uo_out=0b11111101 expected=0b11111101
+1719790000.00ns INFO     cocotb.tb                          walk_zeros i=2 wrote led_off → uo_out=0b11111011 expected=0b11111011
+1751890000.00ns INFO     cocotb.tb                          walk_zeros i=3 wrote led_off → uo_out=0b11110111 expected=0b11110111
+1783990000.00ns INFO     cocotb.tb                          walk_zeros i=4 wrote led_off → uo_out=0b11101111 expected=0b11101111
+1816090000.00ns INFO     cocotb.tb                          walk_zeros i=5 wrote led_off → uo_out=0b11011111 expected=0b11011111
+1848190000.00ns INFO     cocotb.tb                          walk_zeros i=6 wrote led_off → uo_out=0b10111111 expected=0b10111111
+1880290000.00ns INFO     cocotb.tb                          walk_zeros i=7 wrote led_off → uo_out=0b01111111 expected=0b01111111
+1884190000.00ns INFO     cocotb.tb                          loop=0 i=0 data=0b00011111 bit7=0 expected_on=0b00000000
+1887890000.00ns INFO     cocotb.tb                          loop=0 i=1 data=0b11100111 bit7=1 expected_on=0b00000010
+1891590000.00ns INFO     cocotb.tb                          loop=0 i=2 data=0b11100011 bit7=1 expected_on=0b00000110
+1895290000.00ns INFO     cocotb.tb                          loop=0 i=3 data=0b10011010 bit7=1 expected_on=0b00001110
+1898990000.00ns INFO     cocotb.tb                          loop=0 i=4 data=0b10111000 bit7=1 expected_on=0b00011110
+1902690000.00ns INFO     cocotb.tb                          loop=0 i=5 data=0b11101100 bit7=1 expected_on=0b00111110
+1906390000.00ns INFO     cocotb.tb                          loop=0 i=6 data=0b10011111 bit7=1 expected_on=0b01111110
+1910090000.00ns INFO     cocotb.tb                          loop=0 i=7 data=0b11000101 bit7=1 expected_on=0b11111110
+1910090000.00ns INFO     cocotb.tb                          loop=0 final uo_out=0b11111110 expected=0b11111110
+1913790000.00ns INFO     cocotb.tb                          loop=1 i=0 data=0b11010110 bit7=1 expected_on=0b00000001
+1917490000.00ns INFO     cocotb.tb                          loop=1 i=1 data=0b01111001 bit7=0 expected_on=0b00000001
+1921190000.00ns INFO     cocotb.tb                          loop=1 i=2 data=0b10000000 bit7=1 expected_on=0b00000101
+1924890000.00ns INFO     cocotb.tb                          loop=1 i=3 data=0b10011101 bit7=1 expected_on=0b00001101
+1928590000.00ns INFO     cocotb.tb                          loop=1 i=4 data=0b10011011 bit7=1 expected_on=0b00011101
+1932290000.00ns INFO     cocotb.tb                          loop=1 i=5 data=0b00100111 bit7=0 expected_on=0b00011101
+1935990000.00ns INFO     cocotb.tb                          loop=1 i=6 data=0b01010000 bit7=0 expected_on=0b00011101
+1939690000.00ns INFO     cocotb.tb                          loop=1 i=7 data=0b10100010 bit7=1 expected_on=0b10011101
+1939690000.00ns INFO     cocotb.tb                          loop=1 final uo_out=0b10011101 expected=0b10011101
+1943390000.00ns INFO     cocotb.tb                          loop=2 i=0 data=0b01001101 bit7=0 expected_on=0b00000000
+1947090000.00ns INFO     cocotb.tb                          loop=2 i=1 data=0b11011101 bit7=1 expected_on=0b00000010
+1950790000.00ns INFO     cocotb.tb                          loop=2 i=2 data=0b01110101 bit7=0 expected_on=0b00000010
+1954490000.00ns INFO     cocotb.tb                          loop=2 i=3 data=0b10011000 bit7=1 expected_on=0b00001010
+1958190000.00ns INFO     cocotb.tb                          loop=2 i=4 data=0b00100000 bit7=0 expected_on=0b00001010
+1961890000.00ns INFO     cocotb.tb                          loop=2 i=5 data=0b00100011 bit7=0 expected_on=0b00001010
+1965590000.00ns INFO     cocotb.tb                          loop=2 i=6 data=0b11010101 bit7=1 expected_on=0b01001010
+1969290000.00ns INFO     cocotb.tb                          loop=2 i=7 data=0b10100100 bit7=1 expected_on=0b11001010
+1969290000.00ns INFO     cocotb.tb                          loop=2 final uo_out=0b11001010 expected=0b11001010
+2036390000.00ns INFO     cocotb.tb                          i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+2068290000.00ns INFO     cocotb.tb                          i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+2100190000.00ns INFO     cocotb.tb                          i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+2132090000.00ns INFO     cocotb.tb                          i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+2163990000.00ns INFO     cocotb.tb                          i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+2195890000.00ns INFO     cocotb.tb                          i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+2227790000.00ns INFO     cocotb.tb                          i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+2259690000.00ns INFO     cocotb.tb                          i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+2319590000.00ns INFO     cocotb.tb                          after disable → uo_out=0b00000000
+2323290000.00ns INFO     cocotb.tb                          after re-enable → uo_out=0b11111111
+2355190000.00ns INFO     cocotb.tb                          walk_ones i=0 wrote 0b10000000 → uo_out=0b00000001 expected=0b00000001
+2358890000.00ns INFO     cocotb.tb                          rand_dc i=0 wrote 0b10001000 → uo_out[0]=1
+2390790000.00ns INFO     cocotb.tb                          walk_ones i=1 wrote 0b10000000 → uo_out=0b00000010 expected=0b00000010
+2394490000.00ns INFO     cocotb.tb                          rand_dc i=1 wrote 0b10111100 → uo_out[1]=1
+2426390000.00ns INFO     cocotb.tb                          walk_ones i=2 wrote 0b10000000 → uo_out=0b00000100 expected=0b00000100
+2430090000.00ns INFO     cocotb.tb                          rand_dc i=2 wrote 0b10110000 → uo_out[2]=1
+2461990000.00ns INFO     cocotb.tb                          walk_ones i=3 wrote 0b10000000 → uo_out=0b00001000 expected=0b00001000
+2465690000.00ns INFO     cocotb.tb                          rand_dc i=3 wrote 0b10111101 → uo_out[3]=1
+2497590000.00ns INFO     cocotb.tb                          walk_ones i=4 wrote 0b10000000 → uo_out=0b00010000 expected=0b00010000
+2501290000.00ns INFO     cocotb.tb                          rand_dc i=4 wrote 0b10001001 → uo_out[4]=1
+2533190000.00ns INFO     cocotb.tb                          walk_ones i=5 wrote 0b10000000 → uo_out=0b00100000 expected=0b00100000
+2536890000.00ns INFO     cocotb.tb                          rand_dc i=5 wrote 0b10000010 → uo_out[5]=1
+2568790000.00ns INFO     cocotb.tb                          walk_ones i=6 wrote 0b10000000 → uo_out=0b01000000 expected=0b01000000
+2572490000.00ns INFO     cocotb.tb                          rand_dc i=6 wrote 0b11111100 → uo_out[6]=1
+2604390000.00ns INFO     cocotb.tb                          walk_ones i=7 wrote 0b10000000 → uo_out=0b10000000 expected=0b10000000
+2608090000.00ns INFO     cocotb.tb                          rand_dc i=7 wrote 0b11001001 → uo_out[7]=1
+2639990000.00ns INFO     cocotb.tb                          walk_zeros i=0 wrote led_off → uo_out=0b11111110 expected=0b11111110
+2672090000.00ns INFO     cocotb.tb                          walk_zeros i=1 wrote led_off → uo_out=0b11111101 expected=0b11111101
+2704190000.00ns INFO     cocotb.tb                          walk_zeros i=2 wrote led_off → uo_out=0b11111011 expected=0b11111011
+2736290000.00ns INFO     cocotb.tb                          walk_zeros i=3 wrote led_off → uo_out=0b11110111 expected=0b11110111
+2768390000.00ns INFO     cocotb.tb                          walk_zeros i=4 wrote led_off → uo_out=0b11101111 expected=0b11101111
+2800490000.00ns INFO     cocotb.tb                          walk_zeros i=5 wrote led_off → uo_out=0b11011111 expected=0b11011111
+2832590000.00ns INFO     cocotb.tb                          walk_zeros i=6 wrote led_off → uo_out=0b10111111 expected=0b10111111
+2864690000.00ns INFO     cocotb.tb                          walk_zeros i=7 wrote led_off → uo_out=0b01111111 expected=0b01111111
+2868590000.00ns INFO     cocotb.tb                          loop=0 i=0 data=0b10000010 bit7=1 expected_on=0b00000001
+2872290000.00ns INFO     cocotb.tb                          loop=0 i=1 data=0b00110011 bit7=0 expected_on=0b00000001
+2875990000.00ns INFO     cocotb.tb                          loop=0 i=2 data=0b10001010 bit7=1 expected_on=0b00000101
+2879690000.00ns INFO     cocotb.tb                          loop=0 i=3 data=0b00101011 bit7=0 expected_on=0b00000101
+2883390000.00ns INFO     cocotb.tb                          loop=0 i=4 data=0b10101111 bit7=1 expected_on=0b00010101
+2887090000.00ns INFO     cocotb.tb                          loop=0 i=5 data=0b10101000 bit7=1 expected_on=0b00110101
+2890790000.00ns INFO     cocotb.tb                          loop=0 i=6 data=0b10011101 bit7=1 expected_on=0b01110101
+2894490000.00ns INFO     cocotb.tb                          loop=0 i=7 data=0b00000001 bit7=0 expected_on=0b01110101
+2894490000.00ns INFO     cocotb.tb                          loop=0 final uo_out=0b01110101 expected=0b01110101
+2898190000.00ns INFO     cocotb.tb                          loop=1 i=0 data=0b01010010 bit7=0 expected_on=0b00000000
+2901890000.00ns INFO     cocotb.tb                          loop=1 i=1 data=0b10110000 bit7=1 expected_on=0b00000010
+2905590000.00ns INFO     cocotb.tb                          loop=1 i=2 data=0b01101100 bit7=0 expected_on=0b00000010
+2909290000.00ns INFO     cocotb.tb                          loop=1 i=3 data=0b11010110 bit7=1 expected_on=0b00001010
+2912990000.00ns INFO     cocotb.tb                          loop=1 i=4 data=0b01000110 bit7=0 expected_on=0b00001010
+2916690000.00ns INFO     cocotb.tb                          loop=1 i=5 data=0b01100100 bit7=0 expected_on=0b00001010
+2920390000.00ns INFO     cocotb.tb                          loop=1 i=6 data=0b11101101 bit7=1 expected_on=0b01001010
+2924090000.00ns INFO     cocotb.tb                          loop=1 i=7 data=0b11000101 bit7=1 expected_on=0b11001010
+2924090000.00ns INFO     cocotb.tb                          loop=1 final uo_out=0b11001010 expected=0b11001010
+2927790000.00ns INFO     cocotb.tb                          loop=2 i=0 data=0b00011010 bit7=0 expected_on=0b00000000
+2931490000.00ns INFO     cocotb.tb                          loop=2 i=1 data=0b11101011 bit7=1 expected_on=0b00000010
+2935190000.00ns INFO     cocotb.tb                          loop=2 i=2 data=0b01000110 bit7=0 expected_on=0b00000010
+2938890000.00ns INFO     cocotb.tb                          loop=2 i=3 data=0b11101101 bit7=1 expected_on=0b00001010
+2942590000.00ns INFO     cocotb.tb                          loop=2 i=4 data=0b01100101 bit7=0 expected_on=0b00001010
+2946290000.00ns INFO     cocotb.tb                          loop=2 i=5 data=0b00110100 bit7=0 expected_on=0b00001010
+2949990000.00ns INFO     cocotb.tb                          loop=2 i=6 data=0b11111010 bit7=1 expected_on=0b01001010
+2953690000.00ns INFO     cocotb.tb                          loop=2 i=7 data=0b11111111 bit7=1 expected_on=0b11001010
+2953690000.00ns INFO     cocotb.tb                          loop=2 final uo_out=0b11001010 expected=0b11001010
+2953890000.00ns INFO     cocotb.regression                  test.spi_write_tests passed
+2953890000.00ns INFO     cocotb.regression                  **************************************************************************************
+                                                            ** TEST                          STATUS  SIM TIME (ns)  REAL TIME (s)  RATIO (ns/s) **
+                                                            **************************************************************************************
+                                                            ** test.spi_write_tests           PASS   2953890000.00          23.00   128424130.53  **
+                                                            **************************************************************************************
+                                                            ** TESTS=1 PASS=1 FAIL=0 SKIP=0          2953890000.00          23.01   128376471.76  **
+                                                            **************************************************************************************
+VCD info: dumpfile tb.vcd opened for output.
