@@ -3,8 +3,8 @@
 project:
   title:        "SPI LED Controller"      # Project title
   author:       "Grace Eysenbach"      # Your name
-  discord:      "??????????"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
-  description:  "SPI peripheral and an ...???"      # One line description of what your project does
+  discord:            # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
+  description:  "SPI peripheral with addressable 8-bit registers for controlling 8x LEDs"      # One line description of what your project does
   language:     "SystemVerilog" # other examples include SystemVerilog, Amaranth, VHDL, etc
   clock_hz:     50000000       # Clock frequency in Hz (or 0 if not applicable)
 
@@ -16,9 +16,9 @@ project:
 
   # List your project's source files here. Source files must be in ./src and you must list each source file separately, one per line:
   source_files:        
-    - "tt_um_grace_spi_led.v"
+    - "tt_um_grace_spi_led.sv"
     - "synchronizer.sv"
-    - "spi_slave.sv"
+    - "spi_peripheral.sv"
     - "register_file.sv"
     - "falling_edge_detector.sv"
     - "rising_edge_detector.sv"
@@ -37,23 +37,23 @@ project:
   ui[7]: ""
 
   # Outputs
-  uo[0]: "decod_reg[0]"
-  uo[1]: "decod_reg[1]"
-  uo[2]: "decod_reg[2]"
-  uo[3]: "decod_reg[3]"
-  uo[4]: "decod_reg[4]"
-  uo[5]: "decod_reg[5]"
-  uo[6]: "decod_reg[6]"
-  uo[7]: "decod_reg[7]"
+  uo[0]: "LED0"
+  uo[1]: "LED1"
+  uo[2]: "LED2"
+  uo[3]: "LED3"
+  uo[4]: "LED4"
+  uo[5]: "LED5"
+  uo[6]: "LED6"
+  uo[7]: "LED7"
 
   # Bidirectional pins
-  uio[0]: ""
-  uio[1]: "spi_cs_n"
+  uio[0]: "spi_cs_n"
+  uio[1]: "spi_mosi"
   uio[2]: "spi_miso"
-  uio[3]: ""
+  uio[3]: "spi_clk"
   uio[4]: ""
-  uio[5]: "spi_clk"
-  uio[6]: "spi_mosi"
+  uio[5]: ""
+  uio[6]: ""
   uio[7]: ""
 
   # Do not change!

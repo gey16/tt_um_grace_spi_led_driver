@@ -1,6 +1,6 @@
 /*
- * spi_slave.sv
- * SPI slave FSM — CPOL=0, CPHA=0 only
+ * spi_peripheral.sv
+ * SPI peripheral FSM — CPOL=0, CPHA=0 only
  * Grace Eysenbach
  *
  * SPI packet format (16 bits total, MSB first):
@@ -23,7 +23,7 @@
  *   Data is sampled on the rising edge of spi_clk (CPHA=0).
  */
 
-module spi_slave #(
+module spi_peripheral #(
     // Parameters
     parameter int ADDR_W = 4,   // 4b address, supports 16 registers (0x0-0xF)
     parameter int REG_W = 8     // register width = 8b 

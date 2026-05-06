@@ -19,7 +19,7 @@ tt_um_grace_spi_led.sv  (top-level, maps TT pins to named signals)
     ↓
 synchronizer.sv        (2-flop CDC for spi_cs_n, spi_clk, spi_mosi)
     ↓
-spi_slave.sv           (SPI FSM — decodes transactions, drives register file)
+spi_peripheral.sv           (SPI FSM — decodes transactions, drives register file)
     ↓
 register_file.sv       (16 × 8-bit registers)
     ↓
@@ -30,7 +30,7 @@ Reference implementation studied: **calonso88/tt07_alu_74181** — a working TT 
 
 Architecture diagrams (HTML, open in browser):
 - `/Users/grace/Career/AI_ChipDesign/tiny_tapeout/architecture_diagram.html` — module hierarchy
-- `/Users/grace/Career/AI_ChipDesign/tiny_tapeout/spi_slave_internals.html` — internal block diagram of spi_slave.sv grouped by role
+- `/Users/grace/Career/AI_ChipDesign/tiny_tapeout/spi_peripheral_internals.html` — internal block diagram of spi_peripheral.sv grouped by role
 
 ---
 
@@ -76,9 +76,9 @@ A complete SPI master-write transaction (CS low → 16 bits clocked in → CS hi
 ### What was built this week
 
 **RTL modules (all in `src/`):**
-- `spi_slave.sv` — SPI FSM, write path fully working
+- `spi_peripheral.sv` — SPI FSM, write path fully working
 - `register_file.sv` — 16 × 8-bit registers, LED output logic
-- `tt_um_grace_spi_led.sv` — top-level TT wrapper, pin mapping, synchronizer + spi_slave + register_file instantiation
+- `tt_um_grace_spi_led.sv` — top-level TT wrapper, pin mapping, synchronizer + spi_peripheral + register_file instantiation
 - `synchronizer.sv` — 2-flop CDC (instantiates `reclocking.sv`)
 - `reclocking.sv` — single flip-flop stage
 - `rising_edge_detector.sv`, `falling_edge_detector.sv` — Grace's own versions (use `rst_n` port name)
@@ -110,7 +110,7 @@ Data sampled on rising edge of spi_clk (CPHA=0).
 
 ### Key bug discovered and fixed: reg_rw timing
 
-In `spi_slave.sv` STATE_ADDR, the FSM originally checked the registered `reg_rw` signal to decide whether to transition to STATE_RX_DATA or STATE_TX_DATA. But `reg_rw` is updated by an `always_ff` block one cycle *after* `sample_addr` fires — so the FSM always saw the stale value (0 = read at reset), sending every transaction to STATE_TX_DATA.
+In `spi_peripheral.sv` STATE_ADDR, the FSM originally checked the registered `reg_rw` signal to decide whether to transition to STATE_RX_DATA or STATE_TX_DATA. But `reg_rw` is updated by an `always_ff` block one cycle *after* `sample_addr` fires — so the FSM always saw the stale value (0 = read at reset), sending every transaction to STATE_TX_DATA.
 
 **Fix:** in the `always_comb` next-state block, check `rx_buffer[REG_W-1]` directly instead of `reg_rw`. The rx_buffer already has the correct value at the moment the counter hits 8.
 
@@ -138,16 +138,13 @@ SRC_DIR := $(strip $(CURDIR)/../src)
 
 ```bash
 cd /Users/grace/tt/tt_um_grace_spi_led/test
-make        # run tests
-make log    # run tests + save output to test/test_run.log
+make
 ```
 
 Tests pass on macOS with Icarus Verilog 13 + cocotb 2.0.1. VCD output: `test/tb.vcd`, view with:
 ```bash
 surfer /Users/grace/tt/tt_um_grace_spi_led/test/tb.vcd
 ```
-
-Test log: `test/test_run.log` (contains cocotb `dut._log.info` output + pass/fail results).
 
 Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.git` (confirm remote with `git remote -v`).
 
@@ -158,7 +155,7 @@ Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.
 | File | Description |
 |------|-------------|
 | `src/tt_um_grace_spi_led.sv` | Top-level TT wrapper |
-| `src/spi_slave.sv` | SPI FSM — write path complete, TX path stubbed out |
+| `src/spi_peripheral.sv` | SPI FSM — write path complete, TX path stubbed out |
 | `src/register_file.sv` | 16 × 8-bit registers, LED output logic |
 | `src/synchronizer.sv` | 2-flop CDC synchronizer |
 | `src/reclocking.sv` | Single FF stage (used by synchronizer) |
@@ -191,5 +188,5 @@ uo_out[n] = registers[8][0] && registers[n][7]
 2. **Expand test coverage** — write/read all 8 LED registers (0–7) + various on/off combinations; test the enable gate (reg 8 = 0 should turn all LEDs off)
 3. **Implement TX path (SPI read)** — declare `tx_buffer` and `tx_buffer_counter`, add `always_ff` blocks, wire `spi_miso` output; implement STATE_TX_DATA in the FSM
 4. **Expand test coverage for SPI read** — after TX path implemented, add `spi_read()` helper and tests that write then read back register values
-5. **Add status register** — design the status register format (e.g. last-op-was-write bit, enable bit); wire into `spi_slave` and `register_file`
+5. **Add status register** — design the status register format (e.g. last-op-was-write bit, enable bit); wire into `spi_peripheral` and `register_file`
 6. **Get synthesis green after each major feature** — push to GitHub Actions after TX path, after status register

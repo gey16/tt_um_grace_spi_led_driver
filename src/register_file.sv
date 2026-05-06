@@ -17,8 +17,8 @@ output logic [7:0] uo_out,   // TT output signals 7:0 are mapped to LEDs
 
 // Register R/W Signals 
 input logic [ADDR_W-1:0] reg_addr,      // decoded register addr for r/w
-output logic [REG_W-1:0] reg_data_i,    // data coming out from register file into spi_slave.sv (Master Read)
-input logic [REG_W-1:0] reg_data_o,     // data going into register file from spi_slave.sv (Master Write)
+output logic [REG_W-1:0] reg_data_i,    // data coming out from register file into spi_peripheral.sv (Master Read)
+input logic [REG_W-1:0] reg_data_o,     // data going into register file from spi_peripheral.sv (Master Write)
 input logic reg_data_o_dv               // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
                                         // reg_data_o, data going to reg_file is "data valid" (dv)
 

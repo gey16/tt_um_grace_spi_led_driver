@@ -69,7 +69,7 @@
     // logic [7:0] status; // TODO: implement status register
 
     // SPI Wrapper
-    spi_slave spi_slave_1 (
+    spi_peripheral spi_peripheral_1 (
         .rst_n(rst_n), .clk(clk), .ena(ena), 
         .spi_cs_n(spi_cs_n_sync), .spi_clk(spi_clk_sync), .spi_mosi(spi_mosi_sync), .spi_miso(spi_miso),
         .reg_addr(reg_addr), .reg_data_i(reg_data_i), .reg_data_o(reg_data_o), .reg_data_o_dv(reg_data_o_dv),
