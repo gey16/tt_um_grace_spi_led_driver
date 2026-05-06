@@ -98,9 +98,11 @@ module spi_peripheral #(
     end
 
     // Internal signals
+    logic reg_rw;                       // detemine if master write vs. read
     logic [REG_W-1:0] rx_buffer;        // 8b buffer for storing recieved bits from Master 
     logic [3:0] rx_buffer_counter;      // track how many bits recieved on MOSI
-    logic reg_rw;                       // detemine if master write vs. read
+    logic [REG_W-1:0] tx_buffer;        // 8b buffer for storing reg contents before sent over MISO
+    logic [3:0] tx_buffer_counter;      // track how many bits sent on MISO
 
     // Sample addr and data 
     // Control signals 
@@ -117,6 +119,7 @@ module spi_peripheral #(
         tx_buffer_load = 1'b0;
         sample_addr = 1'b0;
         sample_data = 1'b0;
+        spi_miso = 1'b0;       // Drive MISO low, unless in STATE_TX_DATA
 
         case (state)
 
@@ -153,8 +156,9 @@ module spi_peripheral #(
             
             // Complete master read (slave TX data)
             STATE_TX_DATA : begin
-                // TODO: Uncomment once TX pathway implemented
-                /* 
+                // Set MISO equal to bit 7 of tx_buffer
+                spi_miso = tx_buffer[7];
+
                 // If TX buffer counter is at 0, start loading register data into tx_buffer
                 if (tx_buffer_counter == 4'd0) begin
                     tx_buffer_load = 1'b1;
@@ -167,7 +171,6 @@ module spi_peripheral #(
                 else if (eof == 1'b1) begin
                     next_state = STATE_IDLE;
                 end
-                */
             end
 
             // Complete master write (slave RX data)
@@ -201,6 +204,7 @@ module spi_peripheral #(
         else begin
             if (ena == 1'b1) begin
                 // ... If data_sample control signal asserted ...
+                // spi_clk_pos = rising edge detector on spi_clk_sync
                 if (spi_clk_pos == 1'b1) begin
                     // ... add MOSI as LSB to existing bits 0-6 of buffer
                     // oldest bit, b7 falls off the top 
@@ -233,6 +237,53 @@ module spi_peripheral #(
         end 
     end
 
+
+    // TX Buffer Behavior
+    // At the rising edge of clk (or if reset is asserted) ...
+    always_ff @(negedge(rst_n) or posedge(clk)) begin
+        // if reset is asserted, write tx_buffer to all 0s
+        if (!rst_n) begin
+            tx_buffer <= '0;
+        end
+        // else if this chip selected...
+        else begin
+            if (ena == 1'b1) begin
+                // First: if tx_buffer_load toggles, load reg data into tx_buffer
+                if (tx_buffer_load == 1'b1) begin
+                    tx_buffer <= reg_data_i;
+                end
+                // Second: on rising SPI clock edge, send one bit at a time from tx_buffer onto MISO
+                // spi_clk_pos = rising edge detector on spi_clk_sync
+                else if (spi_clk_pos == 1'b1) begin
+                    // MISO output is always driven by MSB of tx_buffer
+                    // spi_miso = tx_buffer[7]
+                    // pad right side of tx_buffer with 0s
+                    tx_buffer <= {tx_buffer[6:0], 1'b0};
+                end
+            end
+        end
+    end
+
+    // TX Buffer Counter Behavior
+    always_ff @(negedge(rst_n) or posedge(clk)) begin
+        // if reset is asserted, write tx_buffer_counter to 0
+        if (!rst_n) begin
+            tx_buffer_counter <= '0;
+        end
+        // else if this chip selected...
+        else begin
+            if (ena == 1'b1) begin
+                // if counter reaches 8 (full byte recieved), reset counter to 0
+                if (tx_buffer_counter == 4'd8) begin
+                    tx_buffer_counter <= 4'd0;
+                end
+                // on each SPI clock pulse (one bit sent on MISO), increment counter
+                else if (spi_clk_pos == 1'b1) begin
+                    tx_buffer_counter <= tx_buffer_counter + 1;
+                end
+            end
+        end 
+    end
 
     // Address + reg_rw Registers
     always_ff @(negedge(rst_n) or posedge(clk)) begin
