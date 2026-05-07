@@ -9,11 +9,28 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## How it works
 
+Replica of the famous 4-bit slice arithmetic logic unit (ALU).
+https://en.wikipedia.org/wiki/74181
 
+The project instantiate two times the replica of the 74818 to perform mathematical and logical operations on 8 bit words.
+
+A multiplex  is used to taps different parts of the user logic and map them to the 7 segment display to support debug.
+
+Due to I/O constraints, a SPI slave peripheral has been created to load/read data into the design.
+
+SPI Slave peripheral implementation supports all 4 SPI modes of operation. 8 Configurable (Read/Write) registers. 8 Status (Read only) registers.
+
+RP2040 SPI1 is used to communicate with the device. Map SPI1 IOs to GPIOs 24 to 27.
 
 ## Limitations on SPI:
+ - Single register access per SPI transaction.
+ - SPI transaction is limited to 16 bits transfer at a time (Addr + Data). Please refer to [Protocol](#protocol) for timing diagrams.
+ - Design tested for 8 configuration registers + 8 status registers.
+ - Even though the number of configuration registers and status registers is configurable, design only supports equal number of configuration and status registers for now.
+ - Writes targeting Read Only address are dropped, i.e., no configuration registers gets updated.
 
-#TODO: update this
+
+## Address Space:
 
 | Address | Type of register | 
 | ---| --- |
@@ -36,6 +53,10 @@ You can also include images in this folder and reference them in the markdown. E
 
 ## Connection
 
+RP2040 SPI Master <--SPI--> SPI_WRAPPER <--regaccess--> User logic
+
+* SPI: MOSI MISO SCLK CS
+* regaccess: config_regs (used to drive/control user logic), status_regs (used to read/monitor user logic)
 
 ## Protocol
 
