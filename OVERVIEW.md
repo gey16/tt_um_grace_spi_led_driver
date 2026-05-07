@@ -155,7 +155,7 @@ Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.
 | File | Description |
 |------|-------------|
 | `src/tt_um_grace_spi_led.sv` | Top-level TT wrapper |
-| `src/spi_peripheral.sv` | SPI FSM — write path complete, TX path stubbed out |
+| `src/spi_peripheral.sv` | SPI FSM — write path and TX (read) path both complete |
 | `src/register_file.sv` | 16 × 8-bit registers, LED output logic |
 | `src/synchronizer.sv` | 2-flop CDC synchronizer |
 | `src/reclocking.sv` | Single FF stage (used by synchronizer) |
@@ -163,7 +163,7 @@ Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.
 | `src/falling_edge_detector.sv` | Falling edge detector (uses `rst_n` port name) |
 | `src/calonso_ref/` | calonso's original src files — reference only |
 | `test/tb.v` | Verilog testbench shim |
-| `test/test.py` | cocotb test: LED on/off via SPI write |
+| `test/test.py` | cocotb tests: 5 write-path tests passing; spi_read() helper written, read test in progress |
 | `test/Makefile` | Build config for Grace's design |
 | `test/calonso_ref/` | calonso's original test files — reference only |
 | `REFERENCE.md` | Design notes, diagrams, concept explanations |
@@ -182,11 +182,47 @@ uo_out[n] = registers[8][0] && registers[n][7]
 
 ---
 
+## Week 3 — IN PROGRESS (May 4–10)
+
+Goal: Finish SPI slave — read transactions, RO-write-dropped behavior, full 16-register decoder.
+Exit criterion: Full register-file cocotb tests pass.
+
+### Done so far
+
+**RTL additions to `spi_peripheral.sv`:**
+- TX path fully implemented: `tx_buffer`, `tx_buffer_counter`, `STATE_TX_DATA` in FSM
+- `spi_miso` driven from `tx_buffer[7]` (MSB-first shift register)
+- `tx_buffer_load` fires on entry to `STATE_TX_DATA` (counter == 0), loads `reg_data_i`
+- `tx_buffer` left-shifts on each rising SPI clock edge; `tx_buffer_counter` only counts in `STATE_TX_DATA`
+
+**Test infrastructure:**
+- 5 write-path tests all passing: walking ones, walking zeros, enable gate, random don't-care bits, multi-LED patterns
+- `spi_read()` cocotb helper function written in `test.py`
+- Key timing fix: MISO must be sampled **before** raising CLK (CPHA=0 — slave drives MISO, master samples on rising edge, shift happens after)
+- `make log` target added: saves full cocotb output to `test/test_run.log`
+
+**Repo / CI fixes:**
+- `src/spi_peripheral.sv` renamed from `spi_slave.sv`; all references updated
+- `info.yaml` fixed: `pinout:` and `yaml_version: 6` at top level (not nested inside `project:`), source files updated
+- `src/config.tcl` added (required by OpenLane/TT GDS action)
+- Linter warnings identified (unused signals: `spi_clk_neg`, `reg_rw`, `tx_buffer_load`, `status`; undriven: `spi_miso` — now fixed)
+
+### Remaining for Week 3 exit criterion
+
+1. Verify `spi_read` test passes (timing fix made, needs a run)
+2. Write-then-readback tests for all 8 BRIGHT registers (0x0–0x7), not just reg 0
+3. RO register values in `register_file.sv`: `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`
+4. RO write protection: writes to 0x9–0xF silently dropped in `register_file.sv`
+5. CTRL/ENABLE → STATUS mirroring (STATUS register not yet implemented)
+6. GitHub Actions lint clean (remaining unused-signal warnings)
+
+---
+
 ## Immediate next steps (in order)
 
-1. **Push to GitHub and get a green Actions run** — verify RTL synthesizes cleanly with OpenLane before adding more features. Do this first while the codebase is small.
-2. **Expand test coverage** — write/read all 8 LED registers (0–7) + various on/off combinations; test the enable gate (reg 8 = 0 should turn all LEDs off)
-3. **Implement TX path (SPI read)** — declare `tx_buffer` and `tx_buffer_counter`, add `always_ff` blocks, wire `spi_miso` output; implement STATE_TX_DATA in the FSM
-4. **Expand test coverage for SPI read** — after TX path implemented, add `spi_read()` helper and tests that write then read back register values
-5. **Add status register** — design the status register format (e.g. last-op-was-write bit, enable bit); wire into `spi_peripheral` and `register_file`
-6. **Get synthesis green after each major feature** — push to GitHub Actions after TX path, after status register
+1. **Verify spi_read test passes** — run `make sim` tomorrow; confirm the timing fix (sample MISO before CLK rise) resolves the 254 vs 255 off-by-one
+2. **Write-then-readback for all 8 BRIGHT registers** — extend `spi_read_tests` to cover 0x0–0x7
+3. **Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF
+4. **Implement STATUS register** — `LAST_OP_WAS_WRITE` (bit 1) + `ENABLE` mirror (bit 0); wire into `register_file.sv`
+5. **Clean up linter warnings** — suppress or fix unused signals to get GitHub Actions green
+6. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run

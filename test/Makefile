@@ -23,10 +23,10 @@ log:
 else
 
 # Gate level simulation:
-# Output stored in "sim_build/gl"
+# Output stored in "sim_build/gate-level"
 # "D" = define this symbol
 # TODO: update later once confirmed TTGF26a targets sky130A.
-SIM_BUILD		 = sim_build/gl			# output file path	
+SIM_BUILD		 = sim_build/gate_level			# output file path	
 COMPILE_ARGS    += -DGL_TEST			# define GL_TEST 
 COMPILE_ARGS    += -DFUNCTIONAL			# define FUNCTIONAL
 COMPILE_ARGS    += -DUSE_POWER_PINS		# define USE_POWER_PINS
