@@ -21,15 +21,13 @@ output logic [REG_W-1:0] reg_data_i,    // data coming out from register file in
 input logic [REG_W-1:0] reg_data_o,     // data going into register file from spi_peripheral.sv (Master Write)
 input logic reg_data_o_dv,              // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
                                         // reg_data_o, data going to reg_file is "data valid" (dv)
-input logic reg_data_i_dv,              // pulses HIGH to indicate read ongoing (data going from registers to MISO)
-
-// Status Register 
-output logic [7:0] status    // 8b status register including "last_op_was_write" and "enable" bits
+input logic reg_data_i_dv               // pulses HIGH to indicate read ongoing (data going from registers to MISO)
 );
 
 // Internal Signals 
 // Define 16x 8-bit registers 
 logic [REG_W-1:0] registers [0:15];     // 16 registers, each of width 7:0 (8-bits)
+logic [7:0] status;    // 8b status register including "last_op_was_write" and "enable" bits
 
 // Register Logic
 // At the falling edge of reset (reset asserted) or rising edge of the clock ...
@@ -40,13 +38,16 @@ always_ff @(negedge(rst_n) or posedge(clk)) begin
         for (int i = 0; i < 16; i++) begin
             registers[i] <= '0;
         end
+        status[7:0] <= '0;
     end 
     
     // Else if our chip is selected (ena = 1)...
     else begin 
         if (ena == 1'b1) begin  
             // Status 0-bit mirrors Global Enable 
-            status[0]<= registers[8][0]; 
+            // Remaining bits driven to 0
+            status[0] <= registers[8][0];
+            status[7:2] <= '0; 
 
             // If data in reg_data_o is valid, clock into register at decoded addr
             if (reg_data_o_dv == 1'b1) begin 

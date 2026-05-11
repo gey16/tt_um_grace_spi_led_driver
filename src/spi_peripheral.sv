@@ -41,8 +41,7 @@ module spi_peripheral #(
     output logic [REG_W-1:0] reg_data_o,    // data going out to the register file (Master Write)
     output logic reg_data_o_dv,     // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
                                     // reg_data_o, data going to reg_file is "data valid" (dv)
-    output logic reg_data_i_dv,       // pulses HIGH to indicate SPI read just comepleted 
-    input logic [7:0] status    // 8b status register including "last_op_was_write" and "enable" bits
+    output logic reg_data_i_dv      // pulses HIGH to indicate SPI read just comepleted 
 );
     // Edge Detectors (sof/eof)
 
@@ -69,13 +68,6 @@ module spi_peripheral #(
         .data(spi_clk), .pos_edge(spi_clk_pos)
     );
 
-    // Pulse for 1 clk cycle on the falling edge of SPI clock 
-    logic spi_clk_neg;  // spi clock LOW pulse = falling edge of spi_clk
-    falling_edge_detector falling_edge_detector_spi_clk (
-        .rst_n(rst_n), .clk(clk), .ena(ena), 
-        .data(spi_clk), .neg_edge(spi_clk_neg)
-    );
-
     // FSM state definitions
     typedef enum logic [1:0] {
         STATE_IDLE, STATE_ADDR, STATE_RX_DATA, STATE_TX_DATA
@@ -99,7 +91,6 @@ module spi_peripheral #(
     end
 
     // Internal signals
-    logic reg_rw;                       // detemine if master write vs. read
     logic [REG_W-1:0] rx_buffer;        // 8b buffer for storing recieved bits from Master 
     logic [3:0] rx_buffer_counter;      // track how many bits recieved on MOSI
     logic [REG_W-1:0] tx_buffer;        // 8b buffer for storing reg contents before sent over MISO
@@ -142,6 +133,7 @@ module spi_peripheral #(
                     // Sample rx_buffer: bottom 4 bits -> reg_addr, top_bit -> reg_rw
                     sample_addr = 1'b1;
                     // if r/w bit is 0 (master read) ... slave has to TX/send return data 
+                    // Must read rx_buffer[REG_W-1] directly since reg_rw would take 1x clk cycle to update
                     if (rx_buffer[REG_W-1] == 1'b0) begin
                         next_state = STATE_TX_DATA;
                     end
@@ -167,7 +159,7 @@ module spi_peripheral #(
                 end
                 // Else if tx bufffer counter is at 8, then return to idle (slave done with master read)
                 else if (tx_buffer_counter == 4'd8) begin
-                    reg_data_i_dv = 1'b1;      // SPI read just completed. Update Status register.
+                    reg_data_i_dv = 1'b1;      // SPI read just completed. Pulse so that register_file updates Status register. 
                     next_state = STATE_IDLE;
                 end
                 // return to IDLE if CS unexpectedly goes HIGH mid-transaction
@@ -290,10 +282,9 @@ module spi_peripheral #(
 
     // Address + reg_rw Registers
     always_ff @(negedge(rst_n) or posedge(clk)) begin
-        // if reset is asserted, write address + r/w bit to 0
+        // if reset is asserted, write address to 0
         if (!rst_n) begin
             reg_addr <= '0;
-            reg_rw <= '0;
         end
         // else if this chip selected...
         else begin
@@ -301,9 +292,7 @@ module spi_peripheral #(
                 // only check address + r/w bit once it has been properly sampled 
                 if (sample_addr == 1'b1) begin
                     // address is bits 3:0 of byte#1 where ADDR_W = 4
-                    // r/w bit is bit 7 of byte#1 where REG_W = 8
                     reg_addr <= rx_buffer[ADDR_W-1:0];
-                    reg_rw <= rx_buffer[REG_W-1];
                 end
             end
         end

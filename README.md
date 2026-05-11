@@ -17,8 +17,8 @@ The cocotb testbench requires a Python virtual environment with cocotb and its d
 **Activate the virtual environment before running `make`:**
 
 ```bash
-source ~/tt/venv/bin/activate
-cd test
+source ~/Career/AI_ChipDesign/tiny_tapeout/tt/venv/bin/activate
+cd tt_um_grace_spi_led_driver/test
 make
 ```
 
