@@ -41,6 +41,7 @@ module spi_peripheral #(
     output logic [REG_W-1:0] reg_data_o,    // data going out to the register file (Master Write)
     output logic reg_data_o_dv,     // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
                                     // reg_data_o, data going to reg_file is "data valid" (dv)
+    output logic reg_data_i_dv,       // pulses HIGH to indicate SPI read just comepleted 
     input logic [7:0] status    // 8b status register including "last_op_was_write" and "enable" bits
 );
     // Edge Detectors (sof/eof)
@@ -91,7 +92,7 @@ module spi_peripheral #(
         end 
         // Else if our chip is selected (ena = 1) move to "next state"
         else begin 
-            if (ena == 1'b1) begin  
+            if (ena == 1'b1) begin 
                 state <= next_state;
             end
         end
@@ -120,6 +121,7 @@ module spi_peripheral #(
         sample_addr = 1'b0;
         sample_data = 1'b0;
         spi_miso = 1'b0;       // Drive MISO low, unless in STATE_TX_DATA
+        reg_data_i_dv = 1'b0;
 
         case (state)
 
@@ -165,6 +167,7 @@ module spi_peripheral #(
                 end
                 // Else if tx bufffer counter is at 8, then return to idle (slave done with master read)
                 else if (tx_buffer_counter == 4'd8) begin
+                    reg_data_i_dv = 1'b1;      // SPI read just completed. Update Status register.
                     next_state = STATE_IDLE;
                 end
                 // return to IDLE if CS unexpectedly goes HIGH mid-transaction

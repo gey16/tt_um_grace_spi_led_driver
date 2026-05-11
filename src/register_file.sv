@@ -19,11 +19,12 @@ output logic [7:0] uo_out,   // TT output signals 7:0 are mapped to LEDs
 input logic [ADDR_W-1:0] reg_addr,      // decoded register addr for r/w
 output logic [REG_W-1:0] reg_data_i,    // data coming out from register file into spi_peripheral.sv (Master Read)
 input logic [REG_W-1:0] reg_data_o,     // data going into register file from spi_peripheral.sv (Master Write)
-input logic reg_data_o_dv               // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
+input logic reg_data_o_dv,              // pulses HIGH to indicate reg file should store reg_data_o at reg_addr
                                         // reg_data_o, data going to reg_file is "data valid" (dv)
+input logic reg_data_i_dv,              // pulses HIGH to indicate read ongoing (data going from registers to MISO)
 
-// TODO: Status Register 
-// output logic [7:0] status    // 8b status register including "last_op_was_write" and "enable" bits
+// Status Register 
+output logic [7:0] status    // 8b status register including "last_op_was_write" and "enable" bits
 );
 
 // Internal Signals 
@@ -33,22 +34,31 @@ logic [REG_W-1:0] registers [0:15];     // 16 registers, each of width 7:0 (8-bi
 // Register Logic
 // At the falling edge of reset (reset asserted) or rising edge of the clock ...
 always_ff @(negedge(rst_n) or posedge(clk)) begin
+
     // If reset asserted, set all registers to 0
     if (!rst_n) begin
         for (int i = 0; i < 16; i++) begin
             registers[i] <= '0;
         end
     end 
+    
     // Else if our chip is selected (ena = 1)...
     else begin 
         if (ena == 1'b1) begin  
+            // Status 0-bit mirrors Global Enable 
+            status[0]<= registers[8][0]; 
+
             // If data in reg_data_o is valid, clock into register at decoded addr
             if (reg_data_o_dv == 1'b1) begin 
+                status[1] <= 1'b1;
                 // Only write to registers 0x0-0x8 [write protection]
                 if (reg_addr < 4'h9) begin
                     registers[reg_addr] <= reg_data_o;
                 end
             end  
+            else if (reg_data_i_dv == 1'b1) begin
+                status[1] <= 1'b0;
+            end
         end
     end
 end

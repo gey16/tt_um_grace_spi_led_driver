@@ -66,20 +66,22 @@
     logic [7:0] reg_data_i;
     logic [7:0] reg_data_o;
     logic reg_data_o_dv;
-    // logic [7:0] status; // TODO: implement status register
+    logic reg_data_i_dv;
+    logic [7:0] status; 
 
-    // SPI Wrapper
+    // SPI Peripheral instantiation
     spi_peripheral spi_peripheral_1 (
         .rst_n(rst_n), .clk(clk), .ena(ena), 
         .spi_cs_n(spi_cs_n_sync), .spi_clk(spi_clk_sync), .spi_mosi(spi_mosi_sync), .spi_miso(spi_miso),
-        .reg_addr(reg_addr), .reg_data_i(reg_data_i), .reg_data_o(reg_data_o), .reg_data_o_dv(reg_data_o_dv),
-        .status(8'b0)  // TODO: implement status register
+        .reg_addr(reg_addr), .reg_data_i(reg_data_i), .reg_data_o(reg_data_o), .reg_data_o_dv(reg_data_o_dv), .reg_data_i_dv(reg_data_i_dv),
+        .status(status)  
     );
 
     register_file register_file_1(
         .rst_n(rst_n), .clk(clk), .ena(ena), 
-        .reg_addr(reg_addr), .reg_data_i(reg_data_i), .reg_data_o(reg_data_o), .reg_data_o_dv(reg_data_o_dv),
-        .uo_out(uo_out)
+        .reg_addr(reg_addr), .reg_data_i(reg_data_i), .reg_data_o(reg_data_o), .reg_data_o_dv(reg_data_o_dv), .reg_data_i_dv(reg_data_i_dv),
+        .uo_out(uo_out),
+        .status(status)
     );
 
  endmodule

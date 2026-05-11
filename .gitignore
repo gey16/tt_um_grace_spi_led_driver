@@ -12,3 +12,4 @@ test/gate_level_netlist.v
 docs_gitactions_failure_log
 gds_failure_log
 TEST_CHANGES.md
+test/test_run.log
