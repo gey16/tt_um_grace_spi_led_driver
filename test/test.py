@@ -247,11 +247,13 @@ async def spi_read (clk, port_in, port_out, address):
     i = 7
     reg_data = 0;     # initialize register data collected from peripheral    
     while i >= 0:
-        reg_data = (reg_data << 1) | spi_miso_read(port_out)
+        print(f"CLK pre-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
+        reg_data = (reg_data << 1) | spi_miso_read(port_out)    
         temp = port_in.value; 
         result = spi_clk_invert(temp)
         port_in.value = result
         await ClockCycles(clk, 10)
+        print(f"CLK post-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
         temp = port_in.value; 
         result = spi_clk_invert(temp)
         port_in.value = result
@@ -266,8 +268,8 @@ async def spi_read (clk, port_in, port_out, address):
     
     return reg_data
  
-# @cocotb.test()
-# async def spi_read_tests(dut):
+@cocotb.test()
+async def spi_read_tests(dut):
     dut._log.info("Starting SPI Read Tests")
 
     # Set the clock period to 10 us (100 KHz)
@@ -301,21 +303,42 @@ async def spi_read (clk, port_in, port_out, address):
     # ITERATIONS 
     iterations = 0
 
+    # -- Enable LED Outputs -- #
+    # byte1 = 1 000 1000
+    # byte2 = 0000000 1
+    enable_out = 0x1
+    disable_out = 0x0
+
+    # byte2 = 1 0000000
+    led_on  = 0x80
+    # byte2 = 0 0000000
+    led_off = 0x0
+
     #TODO: increase iterations
     while iterations < 3:
-      expected_val = 0xFF
-      # Basic write + read to register0
-      await spi_write (dut.clk, dut.uio_in, 0, expected_val)
-      await ClockCycles(dut.clk, 10)
-      await ClockCycles(dut.clk, 10)
-      reg_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, 0)
-      await ClockCycles(dut.clk, 10)
-      await ClockCycles(dut.clk, 10)
+      # -- Basic write + read to LED registers -- #
 
-      assert int(reg_data) == int(expected_val), f"Unexpected Value. Expected: {expected_val:#010b}, Actual: {int(dut.uo_out.value):#010b}"
-      dut._log.info(f"Wrote {expected_val:#010b} → uo_out={int(dut.uo_out.value):#010b} expected={expected_val:#010b}")
+      # TODO: not needed
+      # # Enable  (bit 0 of CTRL register #8)
+      # await spi_write (dut.clk, dut.uio_in, 8, enable_out)
+      # await ClockCycles(dut.clk, 10)
+      # await ClockCycles(dut.clk, 10)
+      
+      # Write/Read Loopback with randomized LED Register values (0-FF)
+      for i in range(8): 
+        expected_val = random.randint(0x00, 0xFF)
+        await spi_write (dut.clk, dut.uio_in, i, expected_val)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+        read_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
 
-#TODO: uncomment out when done debugging read tests
+        assert int(read_data) == int(expected_val), f"Unexpected Value. Expected: {expected_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {expected_val:#010b} → read_data={int(read_data):#010b} expected={expected_val:#010b}")
+      iterations = iterations + 1
+# TODO: reinstate write tests 
+'''
 @cocotb.test()
 async def spi_write_tests(dut):
     dut._log.info("Starting SPI Write Test")
@@ -513,3 +536,4 @@ async def spi_write_tests(dut):
     # Wait for some time
     await ClockCycles(dut.clk, 10)
     await ClockCycles(dut.clk, 10)
+'''

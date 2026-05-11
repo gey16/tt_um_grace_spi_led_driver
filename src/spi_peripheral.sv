@@ -160,7 +160,7 @@ module spi_peripheral #(
                 spi_miso = tx_buffer[7];
 
                 // If TX buffer counter is at 0, start loading register data into tx_buffer
-                if (tx_buffer_counter == 4'd0) begin
+                if (tx_buffer_counter == 4'd0 && spi_clk_pos == 0) begin
                     tx_buffer_load = 1'b1;
                 end
                 // Else if tx bufffer counter is at 8, then return to idle (slave done with master read)
