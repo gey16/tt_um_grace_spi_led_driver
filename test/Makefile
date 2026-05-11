@@ -6,7 +6,7 @@ TOPLEVEL_LANG ?= verilog	# top-level testbench is Verilog (as opp. to VHDL)
 # path to RTL source files
 SRC_DIR = $(strip $(CURDIR)/../src)
 PROJECT_DIR = $(SRC_DIR)	# variable defining project director
-PROJECT_SOURCES = tt_um_grace_spi_led.sv spi_peripheral.sv register_file.sv reclocking.sv synchronizer.sv rising_edge_detector.sv falling_edge_detector.sv
+PROJECT_SOURCES = tt_um_grace_spi_led_driver.sv spi_peripheral.sv register_file.sv reclocking.sv synchronizer.sv rising_edge_detector.sv falling_edge_detector.sv
 LOG_FILE := $(CURDIR)/test_run.log 
 ifneq ($(GATES),yes)		# How Makefile branches betwen RTL sim and gate-level sim (Make GATES=yes)
 

@@ -15,7 +15,7 @@ Grace is building her own custom Tiny Tapeout design called **tt_um_grace_spi_le
 ```
 RP2040 (SPI master)
     ↓ CS, SCLK, MOSI / ↑ MISO
-tt_um_grace_spi_led.sv  (top-level, maps TT pins to named signals)
+tt_um_grace_spi_led_driver.sv  (top-level, maps TT pins to named signals)
     ↓
 synchronizer.sv        (2-flop CDC for spi_cs_n, spi_clk, spi_mosi)
     ↓
@@ -78,7 +78,7 @@ A complete SPI master-write transaction (CS low → 16 bits clocked in → CS hi
 **RTL modules (all in `src/`):**
 - `spi_peripheral.sv` — SPI FSM, write path fully working
 - `register_file.sv` — 16 × 8-bit registers, LED output logic
-- `tt_um_grace_spi_led.sv` — top-level TT wrapper, pin mapping, synchronizer + spi_peripheral + register_file instantiation
+- `tt_um_grace_spi_led_driver.sv` — top-level TT wrapper, pin mapping, synchronizer + spi_peripheral + register_file instantiation
 - `synchronizer.sv` — 2-flop CDC (instantiates `reclocking.sv`)
 - `reclocking.sv` — single flip-flop stage
 - `rising_edge_detector.sv`, `falling_edge_detector.sv` — Grace's own versions (use `rst_n` port name)
@@ -154,7 +154,7 @@ Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.
 
 | File | Description |
 |------|-------------|
-| `src/tt_um_grace_spi_led.sv` | Top-level TT wrapper |
+| `src/tt_um_grace_spi_led_driver.sv` | Top-level TT wrapper |
 | `src/spi_peripheral.sv` | SPI FSM — write path and TX (read) path both complete |
 | `src/register_file.sv` | 16 × 8-bit registers, LED output logic |
 | `src/synchronizer.sv` | 2-flop CDC synchronizer |
@@ -207,6 +207,12 @@ Exit criterion: Full register-file cocotb tests pass.
 - `src/config.tcl` added (required by OpenLane/TT GDS action)
 - Linter warnings identified (unused signals: `spi_clk_neg`, `reg_rw`, `tx_buffer_load`, `status`; undriven: `spi_miso` — now fixed)
 
+**GitHub Actions status (as of May 10):**
+- GDS: PASS
+- Precheck: PASS
+- Viewer: PASS
+- gl_test: FAIL — gate-level simulation (runs cocotb tests against synthesized netlist, not RTL)
+
 ### Remaining for Week 3 exit criterion
 
 1. ~~Verify `spi_read` test passes~~ **DONE** — all 3 tests passing
@@ -220,10 +226,13 @@ Exit criterion: Full register-file cocotb tests pass.
 
 ## Immediate next steps (in order)
 
-1. ~~**Verify spi_read test passes**~~ **DONE**
+1. **Detach from calonso fork** — create a fresh GitHub repo (`geysenbach/tt_um_grace_spi_led`), re-point remote, push. Also delete `src/calonso_ref/` and `test/calonso_ref/`.
+2. ~~**Verify spi_read test passes**~~ **DONE**
 2. ~~**Write-then-readback for all 8 BRIGHT registers** — extend `spi_read_tests` to cover 0x0–0x7~~ **DONE** — randomized write/readback loop over 0x0–0x7, 3 iterations, passing
    - **TODO (Grace):** fully understand and clean up `spi_read_tests` in `test/test.py`
 3. ~~**Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF~~ **DONE** — write guard (`reg_addr < 4'h9`) in `always_ff`, `always_comb` case block returns hardwired constants on read; randomized write-then-readback test passing
 4. ~~**Implement STATUS register RTL**~~ **DONE** — **TODO (Grace):** write cocotb STATUS register test
 5. **Clean up linter warnings** — suppress or fix unused signals to get GitHub Actions green
-6. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run
+6. **Fix gl_test** — gate-level sim failing; GDS/precheck/viewer all pass. Likely timing or signal-naming issue in synthesized netlist vs RTL sim.
+7. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run
+8. **Week 5–6: Local hardening** — set up LibreLane locally (Docker or venv + GF180 PDK) to generate GDS on machine; helps debug gl_test and speeds up iteration

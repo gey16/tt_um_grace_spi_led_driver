@@ -46,7 +46,7 @@ wire [7:0] uio_out;
 wire [7:0] uio_oe;
 
 // *** Instantiate Module  *** //
-tt_um_grace_spi_led user_project (
+tt_um_grace_spi_led_driver user_project (
 
 // Power Port Signals 
 // GL_TEST = Gate Level Test 

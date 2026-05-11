@@ -1,10 +1,10 @@
 /*
- * tt_um_grace_spi_led.sv
+ * tt_um_grace_spi_led_driver.sv
  * Top-Level chip defintion
  * Grace Eysenbach
  */
 
- module tt_um_grace_spi_led (
+ module tt_um_grace_spi_led_driver (
     input  wire [7:0] ui_in,        // TT 8x input-only pins
     output wire [7:0] uo_out,       // TT 8x output-only pins --> drive LEDs
     input  wire [7:0] uio_in,       // TT 8x input pins
