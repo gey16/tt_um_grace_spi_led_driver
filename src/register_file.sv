@@ -44,14 +44,23 @@ always_ff @(negedge(rst_n) or posedge(clk)) begin
         if (ena == 1'b1) begin  
             // If data in reg_data_o is valid, clock into register at decoded addr
             if (reg_data_o_dv == 1'b1) begin 
-                registers[reg_addr] <= reg_data_o;
+                // Only write to registers 0x0-0x8 [write protection]
+                if (reg_addr < 4'h9) begin
+                    registers[reg_addr] <= reg_data_o;
+                end
             end  
         end
     end
 end
 
-// Master Read: return contents of register from requested reg_addr 
-assign reg_data_i = registers[reg_addr];
+// Master Read: return contents of register from requested reg_addr
+always_comb begin
+    case (reg_addr)
+        4'h9: reg_data_i = 8'hA5;   // ID hard-coded to 0xA5
+        4'hA: reg_data_i = 8'h1;    // Version hard-coded to 0x01
+        default: reg_data_i = registers[reg_addr];  // default = write to actual registers
+    endcase
+end
 
 // Update LED Settings 
 // each led 7:0 mapped to bit 7 of its corresponding register

@@ -317,12 +317,6 @@ async def spi_read_tests(dut):
     #TODO: increase iterations
     while iterations < 3:
       # -- Basic write + read to LED registers -- #
-
-      # TODO: not needed
-      # # Enable  (bit 0 of CTRL register #8)
-      # await spi_write (dut.clk, dut.uio_in, 8, enable_out)
-      # await ClockCycles(dut.clk, 10)
-      # await ClockCycles(dut.clk, 10)
       
       # Write/Read Loopback with randomized LED Register values (0-FF)
       for i in range(8): 
@@ -338,7 +332,7 @@ async def spi_read_tests(dut):
         dut._log.info(f"Wrote {expected_val:#010b} → read_data={int(read_data):#010b} expected={expected_val:#010b}")
       iterations = iterations + 1
 # TODO: reinstate write tests 
-'''
+
 @cocotb.test()
 async def spi_write_tests(dut):
     dut._log.info("Starting SPI Write Test")
@@ -536,4 +530,68 @@ async def spi_write_tests(dut):
     # Wait for some time
     await ClockCycles(dut.clk, 10)
     await ClockCycles(dut.clk, 10)
-'''
+
+
+@cocotb.test()
+async def spi_RO_register_tests(dut):
+  dut._log.info("Starting SPI RO Register Tests")
+
+  # Set the clock period to 10 us (100 KHz)
+  clock = Clock(dut.clk, 10, unit="us")
+  cocotb.start_soon(clock.start())
+
+  # Reset
+  dut._log.info("Reset")
+  dut.ena.value = 1
+  dut.ui_in.value = 0
+  dut.uio_in.value = 0
+  dut.rst_n.value = 0
+  await ClockCycles(dut.clk, 10)
+  dut.rst_n.value = 1
+
+  # Wait for some time
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # CPOL = 0, SPI_CLK low in idle
+  temp = dut.uio_in.value
+  result = spi_clk_low(temp)
+  dut.uio_in.value = result
+
+  # Wait for some time
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # ITERATIONS 
+  iterations = 0
+
+  # Expected Constants 
+  id_reg = 0x9
+  id_val = 0xA5
+  ver_reg = 0xA
+  ver_val = 0x01
+
+  #TODO: increase iterations
+  while iterations < 3:
+     # Attempt write to RO register (should ignore)
+     test_val = random.randint(0x00, 0xFF)
+     for i in [id_reg, ver_reg]:
+
+      await spi_write (dut.clk, dut.uio_in, i, test_val)
+      await ClockCycles(dut.clk, 10)
+      await ClockCycles(dut.clk, 10)
+
+      read_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+      await ClockCycles(dut.clk, 10)
+      await ClockCycles(dut.clk, 10)
+
+      if (i == id_reg):
+        assert int(read_data) == int(id_val), f"Unexpected Value. Expected: {id_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={id_val:#010b}")
+        dut._log.info(f"ID Value = 0x{read_data:02X}")
+      if (i == ver_reg):
+        assert int(read_data) == int(ver_val), f"Unexpected Value. Expected: {ver_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={ver_val:#010b}")
+        dut._log.info(f"Version Value = 0x{read_data:02X}")
+
+      iterations = iterations + 1

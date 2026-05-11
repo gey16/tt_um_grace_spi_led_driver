@@ -211,8 +211,8 @@ Exit criterion: Full register-file cocotb tests pass.
 
 1. Verify `spi_read` test passes (timing fix made, needs a run)
 2. Write-then-readback tests for all 8 BRIGHT registers (0x0–0x7), not just reg 0
-3. RO register values in `register_file.sv`: `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`
-4. RO write protection: writes to 0x9–0xF silently dropped in `register_file.sv`
+3. ~~RO register values in `register_file.sv`: `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`~~ **DONE**
+4. ~~RO write protection: writes to 0x9–0xF silently dropped in `register_file.sv`~~ **DONE**
 5. CTRL/ENABLE → STATUS mirroring (STATUS register not yet implemented)
 6. GitHub Actions lint clean (remaining unused-signal warnings)
 
@@ -222,7 +222,7 @@ Exit criterion: Full register-file cocotb tests pass.
 
 1. **Verify spi_read test passes** — run `make sim` tomorrow; confirm the timing fix (sample MISO before CLK rise) resolves the 254 vs 255 off-by-one
 2. **Write-then-readback for all 8 BRIGHT registers** — extend `spi_read_tests` to cover 0x0–0x7
-3. **Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF
+3. ~~**Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF~~ **DONE** — write guard (`reg_addr < 4'h9`) in `always_ff`, `always_comb` case block returns hardwired constants on read; randomized write-then-readback test passing
 4. **Implement STATUS register** — `LAST_OP_WAS_WRITE` (bit 1) + `ENABLE` mirror (bit 0); wire into `register_file.sv`
 5. **Clean up linter warnings** — suppress or fix unused signals to get GitHub Actions green
 6. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run
