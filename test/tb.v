@@ -45,27 +45,33 @@ wire [7:0] uo_out;
 wire [7:0] uio_out;
 wire [7:0] uio_oe;
 
+// Power Port Signals 
+// if compiler flag "GL_TEST" defined ...
+// connect power port VPWR to voltage HIGH
+ // connect ground port to GND
+`ifdef GL_TEST
+  wire VPWR = 1'b1;
+  wire VGND = 1'b0;
+`endif
+
 // *** Instantiate Module  *** //
 tt_um_grace_spi_led_driver user_project (
 
-// Power Port Signals 
-// GL_TEST = Gate Level Test 
-// Required for synthesized netlist (post-layout)
-// Not needed for RTL simulation
-`ifdef GL_TEST      // if compiler flag "GL_TEST" defined ...
-    .VPWR(1'b1),    // connect power port VPWR to voltage HIGH
-    .VGND(1'b0),    // connect ground port to GND
+// Include power ports for the Gate Level test:
+`ifdef GL_TEST
+      .VPWR(VPWR),
+      .VGND(VGND),
 `endif
 
-// Digital Input/Output Signals 
-.clk     (clk),         // system clk - 50 MHz
-.rst_n   (rst_n),       // system RESET
-.ena     (ena),         // chip enable
-.ui_in   (ui_in),       // dedicated input signals
-.uo_out  (uo_out),      // dedicated output signals
-.uio_in  (uio_in),      // bi-directional IOs: Input Path
-.uio_out (uio_out),     // bi-directional IOs: Output Path (chip drives out)
-.uio_oe  (uio_oe)       // bi-directional IOs: Enable path (enable = 1)
+    // Digital Input/Output Signals 
+    .clk     (clk),         // system clk - 50 MHz
+    .rst_n   (rst_n),       // system RESET
+    .ena     (ena),         // chip enable
+    .ui_in   (ui_in),       // dedicated input signals
+    .uo_out  (uo_out),      // dedicated output signals
+    .uio_in  (uio_in),      // bi-directional IOs: Input Path
+    .uio_out (uio_out),     // bi-directional IOs: Output Path (chip drives out)
+    .uio_oe  (uio_oe)       // bi-directional IOs: Enable path (enable = 1)
 
 );
 
