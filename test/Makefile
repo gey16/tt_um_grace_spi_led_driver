@@ -1,19 +1,23 @@
 # Makefile
 
 # Defaults
-SIM ?= icarus				# set simulator to Icarus Verilog (?= means unless theres a command line override)
-TOPLEVEL_LANG ?= verilog	# top-level testbench is Verilog (as opp. to VHDL)
+# set simulator to Icarus Verilog (?= means unless theres a command line override)
+SIM ?= icarus
+# top-level testbench is Verilog (as opp. to VHDL)
+TOPLEVEL_LANG ?= verilog
 # path to RTL source files
 SRC_DIR = $(strip $(CURDIR)/../src)
-PROJECT_DIR = $(SRC_DIR)	# variable defining project director
+# variable defining project director
+PROJECT_DIR = $(SRC_DIR)
 PROJECT_SOURCES = tt_um_grace_spi_led_driver.sv spi_peripheral.sv register_file.sv reclocking.sv synchronizer.sv rising_edge_detector.sv falling_edge_detector.sv
-LOG_FILE := $(CURDIR)/test_run.log 
-ifneq ($(GATES),yes)		# How Makefile branches betwen RTL sim and gate-level sim (Make GATES=yes)
+LOG_FILE := $(CURDIR)/test_run.log
+# How Makefile branches betwen RTL sim and gate-level sim (Make GATES=yes)
+ifneq ($(GATES),yes)
 
 # RTL simulation:
 # "sim_build/rtl" = where compiled simulation files get placed
 SIM_BUILD = sim_build/rtl
-VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))		
+VERILOG_SOURCES += $(addprefix $(SRC_DIR)/,$(PROJECT_SOURCES))
 
 log:
 	$(MAKE) sim 2>&1 | tee $(LOG_FILE)
@@ -24,12 +28,18 @@ else
 # Gate level simulation:
 # Output stored in "sim_build/gl"
 # "D" = define this symbol
-SIM_BUILD		 = sim_build/gl			# output file path	
-COMPILE_ARGS    += -DGL_TEST			# define GL_TEST 
-COMPILE_ARGS    += -DFUNCTIONAL			# define FUNCTIONAL
-COMPILE_ARGS    += -DUSE_POWER_PINS		# define USE_POWER_PINS
-COMPILE_ARGS    += -DSIM				# define SIM
-COMPILE_ARGS    += -DUNIT_DELAY=\#1		# define UNIT_DELAY (1-unit propogation delay to every gate in netlist)
+# output file path
+SIM_BUILD		 = sim_build/gl
+# define GL_TEST			
+COMPILE_ARGS    += -DGL_TEST
+# define FUNCTIONAL
+COMPILE_ARGS    += -DFUNCTIONAL
+# define USE_POWER_PINS		
+COMPILE_ARGS    += -DUSE_POWER_PINS
+# define SIM
+COMPILE_ARGS    += -DSIM
+# define UNIT_DELAY (1-unit propogation delay to every gate in netlist)		
+COMPILE_ARGS    += -DUNIT_DELAY=\#1
 
 # GF180 standard cell library defintions 
 # Define what every gate (AND, OR, FF, etc) does in simulation 
@@ -46,7 +56,7 @@ COMPILE_ARGS += -I$(SRC_DIR)
 
 # Include the testbench sources: tb.v 
 # treat tb.v as the top of the simulation hierarchy 
-VERILOG_SOURCES += $(PWD)/tb.v 
+VERILOG_SOURCES += $(PWD)/tb.v
 TOPLEVEL = tb
 
 # MODULE value tells cocotb which Python test file to use 

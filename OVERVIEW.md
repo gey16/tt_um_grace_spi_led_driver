@@ -207,11 +207,12 @@ Exit criterion: Full register-file cocotb tests pass.
 - `src/config.tcl` added (required by OpenLane/TT GDS action)
 - Linter warnings identified (unused signals: `spi_clk_neg`, `reg_rw`, `tx_buffer_load`, `status`; undriven: `spi_miso` — now fixed)
 
-**GitHub Actions status (as of May 10):**
+**GitHub Actions status (as of May 16):**
 - GDS: PASS
 - Precheck: PASS
 - Viewer: PASS
 - gl_test: FAIL — gate-level simulation (runs cocotb tests against synthesized netlist, not RTL)
+- Lint: CLEAN — all Verilator warnings resolved
 
 ### Remaining for Week 3 exit criterion
 
@@ -220,7 +221,7 @@ Exit criterion: Full register-file cocotb tests pass.
 3. ~~RO register values in `register_file.sv`: `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`~~ **DONE**
 4. ~~RO write protection: writes to 0x9–0xF silently dropped in `register_file.sv`~~ **DONE**
 5. ~~CTRL/ENABLE → STATUS mirroring~~ **RTL DONE** — `status[0]` mirrors `registers[8][0]`, `status[1]` = `LAST_OP_WAS_WRITE`; driven by `reg_data_o_dv`/`reg_data_i_dv`; wired through top-level. **TODO (Grace):** write cocotb test to verify STATUS register behavior
-6. GitHub Actions lint clean (remaining unused-signal warnings)
+6. ~~GitHub Actions lint clean (remaining unused-signal warnings)~~ **DONE** — all Verilator warnings resolved
 
 ---
 
@@ -232,7 +233,7 @@ Exit criterion: Full register-file cocotb tests pass.
    - **TODO (Grace):** fully understand and clean up `spi_read_tests` in `test/test.py`
 3. ~~**Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF~~ **DONE** — write guard (`reg_addr < 4'h9`) in `always_ff`, `always_comb` case block returns hardwired constants on read; randomized write-then-readback test passing
 4. ~~**Implement STATUS register RTL**~~ **DONE** — **TODO (Grace):** write cocotb STATUS register test
-5. **Clean up linter warnings** — suppress or fix unused signals to get GitHub Actions green
+5. ~~**Clean up linter warnings**~~ **DONE** — all Verilator warnings resolved
 6. **Fix gl_test** — gate-level sim failing; GDS/precheck/viewer all pass. Likely timing or signal-naming issue in synthesized netlist vs RTL sim.
 7. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run
 8. **Week 5–6: Local hardening** — set up LibreLane locally (Docker or venv + GF180 PDK) to generate GDS on machine; helps debug gl_test and speeds up iteration
