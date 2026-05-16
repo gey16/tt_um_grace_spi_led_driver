@@ -69,6 +69,7 @@ always_comb begin
     case (reg_addr)
         4'h9: reg_data_i = 8'hA5;   // ID hard-coded to 0xA5
         4'hA: reg_data_i = 8'h1;    // Version hard-coded to 0x01
+        4'hB: reg_data_i = status[7:0];         // STATUS Register. bit0 = Gloabl Enable. bit1 = LAST_OP_WAS_WRITE
         default: reg_data_i = registers[reg_addr];  // default = write to actual registers
     endcase
 end

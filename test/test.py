@@ -247,13 +247,13 @@ async def spi_read (clk, port_in, port_out, address):
     i = 7
     reg_data = 0;     # initialize register data collected from peripheral    
     while i >= 0:
-        print(f"CLK pre-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
+        #TODO: print(f"CLK pre-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
         reg_data = (reg_data << 1) | spi_miso_read(port_out)    
         temp = port_in.value; 
         result = spi_clk_invert(temp)
         port_in.value = result
         await ClockCycles(clk, 10)
-        print(f"CLK post-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
+        #print(f"CLK post-Rising Edge: i={i}  MISO={spi_miso_read(port_out)}")
         temp = port_in.value; 
         result = spi_clk_invert(temp)
         port_in.value = result
@@ -567,15 +567,29 @@ async def spi_RO_register_tests(dut):
 
   # Expected Constants 
   id_reg = 0x9
-  id_val = 0xA5
   ver_reg = 0xA
+  status_reg = 0xB
+
+  id_val = 0xA5
   ver_val = 0x01
 
   #TODO: increase iterations
   while iterations < 3:
-     # Attempt write to RO register (should ignore)
-     test_val = random.randint(0x00, 0xFF)
-     for i in [id_reg, ver_reg]:
+    # Set Global Enable
+    await spi_write (dut.clk, dut.uio_in, 8, 0x1)
+
+    # Expected Status Value = 00000011
+    # bit[0] = 1 --> Global Enable set
+    # bit[1] = 1 --> last op was write 
+    status_val = 0x3
+
+    # Attempt write to RO registers (should ignore)
+    # 0x9 = ID Register --> 0xA5
+    # 0xA = Version Register --> 0x01
+    # 0xB = Status Register --> b0 = global enable set, b1 = last op was write
+    # 0xB-0xE = Unmapped Registers --> 0x0
+    test_val = random.randint(0x00, 0xFF)
+    for i in range(0x9, 0x10):
 
       await spi_write (dut.clk, dut.uio_in, i, test_val)
       await ClockCycles(dut.clk, 10)
@@ -588,10 +602,53 @@ async def spi_RO_register_tests(dut):
       if (i == id_reg):
         assert int(read_data) == int(id_val), f"Unexpected Value. Expected: {id_val:#010b}, Actual: {int(read_data):#010b}"
         dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={id_val:#010b}")
-        dut._log.info(f"ID Value = 0x{read_data:02X}")
-      if (i == ver_reg):
+        dut._log.info(f"[0x{i:02X}] ID Value = 0x{read_data:02X}")
+      elif (i == ver_reg):
         assert int(read_data) == int(ver_val), f"Unexpected Value. Expected: {ver_val:#010b}, Actual: {int(read_data):#010b}"
         dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={ver_val:#010b}")
-        dut._log.info(f"Version Value = 0x{read_data:02X}")
+        dut._log.info(f"[0x{i:02X}] Version Value = 0x{read_data:02X}")
+      elif (i == status_reg):
+        assert int(read_data) == int(status_val), f"Unexpected Value. Expected: {status_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={status_val:#010b}")
+        dut._log.info(f"[0x{i:02X}] Status Value (Enable + Write) = 0x{read_data:02X}")
 
-      iterations = iterations + 1
+        read_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+
+        # Last Op is now Read 
+        status_val = 0x01
+        assert int(read_data) == int(status_val), f"Unexpected Value. Expected: {status_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={status_val:#010b}")
+        dut._log.info(f"[0x{i:02X}] Status Value (Enable + Read)= 0x{read_data:02X}")
+
+        # Disable Global Enable
+        # Last Op is Write (spi_read to STATUS won't contain the updated bit[1] yet)
+        await spi_write (dut.clk, dut.uio_in, 8, 0x0)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+        read_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+      
+        status_val = 0x2
+        assert int(read_data) == int(status_val), f"Unexpected Value. Expected: {status_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={status_val:#010b}")
+        dut._log.info(f"[0x{i:02X}] Status Value (Disable + Write)= 0x{read_data:02X}")
+
+        # Last Op is Now Read 
+        read_data = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+        await ClockCycles(dut.clk, 10)
+        await ClockCycles(dut.clk, 10)
+
+        status_val = 0x00
+        assert int(read_data) == int(status_val), f"Unexpected Value. Expected: {status_val:#010b}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={status_val:#010b}")
+        dut._log.info(f"[0x{i:02X}] Status Value (Disable + Read)= 0x{read_data:02X}")
+    
+      else:
+        assert int(read_data) == 0x0, f"Unexpected Value. Expected: {0x0}, Actual: {int(read_data):#010b}"
+        dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={0x0}")
+        dut._log.info(f"[0x{i:02X}] Unused Register Value = 0x{read_data:02X}")
+
+    iterations = iterations + 1
