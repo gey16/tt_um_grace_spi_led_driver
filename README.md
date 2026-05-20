@@ -1,14 +1,16 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg)
 
-# Tiny Tapeout Verilog Project Template
+# tt_um_grace_spi_led_driver — SPI LED Driver
 
-- [Read the documentation for project](docs/info.md)
+An SPI-controlled 8-channel LED driver chip built for the [Tiny Tapeout](https://tinytapeout.com) TTGF26a shuttle (GF180MCU, 180nm).
+
+An SPI master (e.g. the RP2040/RP2350 on the TT dev board) writes to a 16-register file over a standard 4-wire SPI interface. Eight BRIGHT registers directly drive 8 LED outputs. A global ENABLE bit in the CTRL register gates all outputs. Seven read-only registers provide device ID, version, and status observables for bring-up.
+
+- [Full datasheet and pin descriptions](docs/info.md)
 
 ## What is Tiny Tapeout?
 
-Tiny Tapeout is an educational project that aims to make it easier and cheaper than ever to get your digital designs manufactured on a real chip.
-
-To learn more and get started, visit https://tinytapeout.com.
+Tiny Tapeout is an educational project that makes it easier and cheaper than ever to get your digital designs manufactured on a real chip. To learn more, visit [tinytapeout.com](https://tinytapeout.com).
 
 ## Running simulations locally
 
@@ -22,42 +24,22 @@ cd tt_um_grace_spi_led_driver/test
 make
 ```
 
-Why: cocotb is a Python package that drives the simulator (Icarus Verilog) from Python testbenches. The venv isolates its dependencies from your system Python so versions don't conflict. Without it, `cocotb-config` won't be found and `make` will fail.
-
 Waveform output is written to `test/tb.vcd`. View it with:
 
 ```bash
 surfer test/tb.vcd
 ```
 
----
+To run a specific test:
 
-## Set up your Verilog project
-
-1. Add your Verilog files to the `src` folder.
-2. Edit the [info.yaml](info.yaml) and update information about your project, paying special attention to the `source_files` and `top_module` properties. If you are upgrading an existing Tiny Tapeout project, check out our [online info.yaml migration tool](https://tinytapeout.github.io/tt-yaml-upgrade-tool/).
-3. Edit [docs/info.md](docs/info.md) and add a description of your project.
-4. Adapt the testbench to your design. See [test/README.md](test/README.md) for more information.
-
-The GitHub action will automatically build the ASIC files using [OpenLane](https://www.zerotoasiccourse.com/terminology/openlane/).
-
-## Enable GitHub actions to build the results page
-
-- [Enabling GitHub Pages](https://tinytapeout.com/faq/#my-github-action-is-failing-on-the-pages-part)
+```bash
+make TESTCASE=spi_write_tests
+make TESTCASE=spi_read_tests
+make TESTCASE=spi_RO_register_tests
+```
 
 ## Resources
 
 - [FAQ](https://tinytapeout.com/faq/)
 - [Digital design lessons](https://tinytapeout.com/digital_design/)
-- [Learn how semiconductors work](https://tinytapeout.com/siliwiz/)
 - [Join the community](https://tinytapeout.com/discord)
-- [Build your design locally](https://docs.google.com/document/d/1aUUZ1jthRpg4QURIIyzlOaPWlmQzr-jBn3wZipVUPt4)
-
-## What next?
-
-- [Submit your design to the next shuttle](https://app.tinytapeout.com/).
-- Edit [this README](README.md) and explain your design, how it works, and how to test it.
-- Share your project on your social network of choice:
-  - LinkedIn [#tinytapeout](https://www.linkedin.com/search/results/content/?keywords=%23tinytapeout) [@TinyTapeout](https://www.linkedin.com/company/100708654/)
-  - Mastodon [#tinytapeout](https://chaos.social/tags/tinytapeout) [@matthewvenn](https://chaos.social/@matthewvenn)
-  - X (formerly Twitter) [#tinytapeout](https://twitter.com/hashtag/tinytapeout) [@matthewvenn](https://twitter.com/matthewvenn)
