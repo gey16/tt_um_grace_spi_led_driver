@@ -1,7 +1,6 @@
 # Tiny Tapeout project information
-  #TODO update 
 project:
-  title:        "SPI LED Controller"      # Project title
+  title:        "SPI-Controlled 8-Channel LED Driver"      # Project title
   author:       "Grace Eysenbach"      # Your name
   discord:      "geysenbach"      # Your discord username, for communication and automatically assigning you a Tapeout role (optional)
   description:  "SPI peripheral with addressable 8-bit registers for controlling 8x LEDs"      # One line description of what your project does
