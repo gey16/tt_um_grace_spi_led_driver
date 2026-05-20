@@ -211,7 +211,7 @@ Exit criterion: Full register-file cocotb tests pass.
 - GDS: PASS
 - Precheck: PASS
 - Viewer: PASS
-- gl_test: FAIL — gate-level simulation (runs cocotb tests against synthesized netlist, not RTL)
+- gl_test: PASS — fixed: trailing whitespace in Makefile GL section (SIM_BUILD value corruption); tb.v VPWR/VGND must be declared as `wire`, not connected as literals to inout ports
 - Lint: CLEAN — all Verilator warnings resolved
 
 ### Remaining for Week 3 exit criterion
@@ -227,13 +227,14 @@ Exit criterion: Full register-file cocotb tests pass.
 
 ## Immediate next steps (in order)
 
-1. **Detach from calonso fork** — create a fresh GitHub repo (`geysenbach/tt_um_grace_spi_led`), re-point remote, push. Also delete `src/calonso_ref/` and `test/calonso_ref/`.
+1. ~~**Detach from calonso fork**~~ **DONE**
 2. ~~**Verify spi_read test passes**~~ **DONE**
-2. ~~**Write-then-readback for all 8 BRIGHT registers** — extend `spi_read_tests` to cover 0x0–0x7~~ **DONE** — randomized write/readback loop over 0x0–0x7, 3 iterations, passing
-   - **TODO (Grace):** fully understand and clean up `spi_read_tests` in `test/test.py`
-3. ~~**Add RO registers to register_file.sv** — hardwire `ID (0x9) = 0xA5`, `VERSION (0xA) = 0x01`; silently drop writes to 0x9–0xF~~ **DONE** — write guard (`reg_addr < 4'h9`) in `always_ff`, `always_comb` case block returns hardwired constants on read; randomized write-then-readback test passing
-4. ~~**Implement STATUS register RTL**~~ **DONE** — **TODO (Grace):** write cocotb STATUS register test
-5. ~~**Clean up linter warnings**~~ **DONE** — all Verilator warnings resolved
-6. **Fix gl_test** — gate-level sim failing; GDS/precheck/viewer all pass. Likely timing or signal-naming issue in synthesized netlist vs RTL sim.
-7. **Week 4: MVT user logic** — confirm `uo[i] = ENABLE && BRIGHT_i[7]` is already the behavior in `register_file.sv`; first LibreLane CI run
-8. **Week 5–6: Local hardening** — set up LibreLane locally (Docker or venv + GF180 PDK) to generate GDS on machine; helps debug gl_test and speeds up iteration
+3. ~~**Write-then-readback for all 8 BRIGHT registers**~~ **DONE**
+4. ~~**Add RO registers to register_file.sv**~~ **DONE**
+5. ~~**Implement STATUS register RTL**~~ **DONE**
+6. ~~**Clean up linter warnings**~~ **DONE**
+7. ~~**Fix gl_test**~~ **DONE** — all 4 CI checks now passing
+8. **Write `docs/info.md` datasheet** — How it works, pin connections, SPI protocol, register map, how to test, external hardware (Pmod 8LD)
+9. **Read every PD report line-by-line** — review GDS action output for timing, area, and DRC notes
+10. **Verify `info.yaml`** — confirm pin descriptions, project metadata correct for TTGF26a submission
+11. **Week 5–6: Local hardening** — set up LibreLane locally (Docker or venv + GF180 PDK) to generate GDS on machine
