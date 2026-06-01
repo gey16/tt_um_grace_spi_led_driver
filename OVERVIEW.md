@@ -234,7 +234,8 @@ Exit criterion: Full register-file cocotb tests pass.
 5. ~~**Implement STATUS register RTL**~~ **DONE**
 6. ~~**Clean up linter warnings**~~ **DONE**
 7. ~~**Fix gl_test**~~ **DONE** — all 4 CI checks now passing
-8. **Write `docs/info.md` datasheet** — How it works, pin connections, SPI protocol, register map, how to test, external hardware (Pmod 8LD)
+8. ~~**Write `docs/info.md` datasheet** — How it works, pin connections, SPI protocol, register map, how to test, external hardware (Pmod 8LD)~~
 9. **Read every PD report line-by-line** — review GDS action output for timing, area, and DRC notes
-10. **Verify `info.yaml`** — confirm pin descriptions, project metadata correct for TTGF26a submission
+10.~~ **Verify `info.yaml`** — confirm pin descriptions, project metadata correct for TTGF26a submission~~
 11. **Week 5–6: Local hardening** — set up LibreLane locally (Docker or venv + GF180 PDK) to generate GDS on machine
+12. ~~**FPGA sanity check**~~ **DONE** -- ID (0x9)=0xA5, VERSION (0xA)=0x01, ENABLE gate, all 8 segments verified on TT demoboard 7-segment display

@@ -105,11 +105,12 @@ Recommended bring-up sequence (each step must pass before the next is meaningful
 Example MicroPython (RP2040, SoftSPI):
 
 ```python
+import time
 from machine import SoftSPI, Pin
 
 spi = SoftSPI(baudrate=100_000, polarity=0, phase=0,
-              sck=Pin(18), mosi=Pin(19), miso=Pin(16))
-cs = Pin(17, Pin.OUT, value=1)
+              sck=Pin(28), mosi=Pin(26), miso=Pin(27))
+cs = Pin(25, Pin.OUT, value=1)
 
 def spi_write(addr, data):
     cs(0)
@@ -123,7 +124,18 @@ def spi_read(addr):
     cs(1)
     return buf[1]
 
+# Verify SPI is alive (read ID + Version registers)
+assert spi_read(0x9) == 0xA5    # ID = 0xA5
+assert spi_read(0xA) == 0x01    # Version = 0x01
+
 # Enable LEDs and light up channel 0
 spi_write(0x8, 0x01)   # CTRL: ENABLE=1
 spi_write(0x0, 0x80)   # BRIGHT_0: LED on
+spi_write(0x0, 0x00)   # BRIGHT_0: LED off
+
+# Light all 8x LEDs one at a time 
+for i in range(8):
+    spi_write(i, 0x80)
+    time.sleep(1)
+
 ```
