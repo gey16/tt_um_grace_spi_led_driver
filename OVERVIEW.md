@@ -182,7 +182,7 @@ uo_out[n] = registers[8][0] && registers[n][7]
 
 ---
 
-## Week 3 — IN PROGRESS (May 4–10)
+## Week 3 — May 4–10
 
 Goal: Finish SPI slave — read transactions, RO-write-dropped behavior, full 16-register decoder.
 Exit criterion: Full register-file cocotb tests pass.
@@ -222,6 +222,58 @@ Exit criterion: Full register-file cocotb tests pass.
 4. ~~RO write protection: writes to 0x9–0xF silently dropped in `register_file.sv`~~ **DONE**
 5. ~~CTRL/ENABLE → STATUS mirroring~~ **RTL DONE** — `status[0]` mirrors `registers[8][0]`, `status[1]` = `LAST_OP_WAS_WRITE`; driven by `reg_data_o_dv`/`reg_data_i_dv`; wired through top-level. **TODO (Grace):** write cocotb test to verify STATUS register behavior
 6. ~~GitHub Actions lint clean (remaining unused-signal warnings)~~ **DONE** — all Verilator warnings resolved
+
+---
+
+## Week 7 — Jun 1–7
+
+Goal: PWM stretch goal implementation complete in simulation; all tests passing.
+Exit criterion: Stretch RTL passes CI, or final MVT polish complete.
+
+### What was built this week
+
+**RTL changes to `src/register_file.sv`:**
+- Replaced MSB-gate LED output logic (`registers[n][7]`) with full 8-channel PWM engine
+- New signals: `pwm_counter [7:0]`, `prescalar_cnt [15:0]`, `prescalar_val [3:0]`, `global_en`
+- New `always_ff` block: `pwm_counter` increments every `2^PRESCALER` clock cycles via `prescalar_cnt` divider
+- CTRL register (0x8) reset value changed from 0x00 to 0x80 (PRESCALER=8, ENABLE=0)
+- Register 0xC (COUNTER) now returns live `pwm_counter` value instead of always-0
+- LED output logic replaced with `always_comb` loop over 8 channels:
+  - BRIGHT=0xFF → always on (bypasses counter compare using `&registers[i]` reduction)
+  - BRIGHT=0x00 → always off (unsigned `counter < 0` is never true)
+  - Otherwise: `uo_out[i] = global_en && (pwm_counter < registers[i])`
+
+**Test updates to `test/test.py`:**
+- `enable_out` → `0x81` (PRESCALER=8, ENABLE=1); `disable_out` → `0x80` (keeps prescaler)
+- `led_on` → `0xFF` (always-on boundary); `led_off` → `0x00` (always-off boundary)
+- Both defined outside the `while` loop to avoid resetting PRESCALER mid-test
+- Multi-LED test updated to use `random.choice([0x00, 0xFF])` instead of `random.randint`
+- RO register test extended: register 0xC (COUNTER) verified to increment over 1000 cycles
+- `spi_read_tests`, `spi_write_tests`, `spi_RO_register_tests` — **all 3 passing**
+
+**GitHub Actions status:**
+- GDS: PASS
+- Precheck: PASS
+- Viewer: PASS
+
+### Key bugs found and fixed
+
+| Bug | Symptom | Fix |
+|-----|---------|-----|
+| `^` is XOR in SV, not power-of-2 | `2^prescalar_val` computed XOR | Changed to `(16'h1 << prescalar_val)` |
+| Missing `begin/end` on else branch | `pwm_counter` incremented unconditionally | Added `begin/end` around else block |
+| Blocking `=` inside `always_ff` | Synthesis warning; non-deterministic sim | Changed to non-blocking `<=` |
+| `enable_out = 0x1` inside while loop | PRESCALER reset to 0 each iteration; counter ticked every cycle, hitting 255 during check | Moved `enable_out = 0x81` outside loop |
+| `0xFF` boundary: `255 < 255 = false` | All LEDs off for 1 cycle/period; walk_zeros failed at iteration 2 | Added `BRIGHT==0xFF` always-on case in output logic |
+
+### Concepts Grace now understands
+- PWM fundamentals: counter cycling 0→255, duty cycle = BRIGHT/256, prescaler formula
+- `^` vs `<<` in SystemVerilog (XOR vs left-shift)
+- Non-blocking (`<=`) vs blocking (`=`) in `always_ff`
+- `genvar` (generate blocks only) vs `int` (procedural blocks) for loop variables
+- Reduction operators: `|signal` = nonzero check, `&signal` = all-ones check
+- Why `assign` cannot be used inside `always_comb` (continuous vs procedural assignment)
+- `always_comb` with `for` loop as the idiomatic RTL pattern for repeated conditional output logic
 
 ---
 

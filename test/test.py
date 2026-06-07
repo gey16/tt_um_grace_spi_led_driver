@@ -351,7 +351,7 @@ async def spi_write_tests(dut):
     await ClockCycles(dut.clk, 10)
     dut.rst_n.value = 1
 
-    dut._log.info("Test SPI LED Chip Behavior")
+    dut._log.info("Test SPI Register Write Behavior")
 
     # Wait for some time
     await ClockCycles(dut.clk, 10)
@@ -533,6 +533,96 @@ async def spi_write_tests(dut):
     await ClockCycles(dut.clk, 10)
     await ClockCycles(dut.clk, 10)
 
+@cocotb.test()
+async def spi_pwm_tests(dut):
+  dut._log.info("Starting SPI PWM Brightness Tests")
+
+  # Set the clock period to 10 us (100 KHz)
+  clock = Clock(dut.clk, 10, unit="us")
+  cocotb.start_soon(clock.start())
+
+  # Reset
+  dut._log.info("Reset")
+  dut.ena.value = 1
+  dut.ui_in.value = 0
+  dut.uio_in.value = 0
+  dut.rst_n.value = 0
+  await ClockCycles(dut.clk, 10)
+  dut.rst_n.value = 1
+
+  # Wait for some time
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # CPOL = 0, SPI_CLK low in idle
+  temp = dut.uio_in.value
+  result = spi_clk_low(temp)
+  dut.uio_in.value = result
+
+  # Wait for some time
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # ITERATIONS 
+  iterations = 0
+
+  # -- Enable LED Outputs -- #
+  # Default PRESCALAR = 8 (0b1000)
+  # enable  = 1000 0001
+  # disable = 1000 0000
+  enable_out = 0x81
+  disable_out = 0x80
+
+  led_on  = 0x1
+  led_off = 0x0
+
+  # PWM Test Variables 
+  read_brightness = 0x0
+  pwm_counter = 0x0
+  buffer = 0x5
+  expected_state = 0x0
+
+  # Disable LED Outputs
+  await spi_write (dut.clk, dut.uio_in, 8, disable_out)
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # Turn off ALL Leds 
+  for j in range(8): 
+    await spi_write (dut.clk, dut.uio_in, j, led_off)
+
+  # Enable LED Outputs
+  await spi_write (dut.clk, dut.uio_in, 8, enable_out)
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # -- Individual LED Brightness Test -- # 
+  for i in range(8):
+    # Turn off ALL Leds 
+    for j in range(8): 
+      await spi_write (dut.clk, dut.uio_in, j, led_off)
+
+    # Pick randomized brightness value
+    pwm_brightness = random.randint(0x00, 0xFF)
+    await spi_write (dut.clk, dut.uio_in, i, pwm_brightness)
+    read_brightness = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+    pwm_counter = await spi_read(dut.clk, dut.uio_in, dut.uio_out, 0xC)
+    if (pwm_counter < (read_brightness - buffer)): 
+       expected_state = 1 << i
+    else:
+       expected_state = led_off
+    dut._log.info(f"PWM Brightness = {pwm_brightness:#04x}")
+    dut._log.info(f"Read Brightness = {read_brightness:#04x}")
+    dut._log.info(f"PWM Counter = {pwm_counter:#04x}")
+    assert int(dut.uo_out.value) == expected_state, f"Unexpected LED State. Expected: {expected_state:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+
+
+
+# 1. write a random brightness level 
+# 2. read back current brightness level 
+# 3. if curr_brightness < pwm_counter - buffer --> expected_state = ON 
+#   else --> expected_state = OFF 
+# 4. compare expected_state + uo_out[i] to make sure they match 
 
 @cocotb.test()
 async def spi_RO_register_tests(dut):

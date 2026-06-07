@@ -100,7 +100,7 @@ always_comb begin
     case (reg_addr)
         4'h9: reg_data_i = 8'hA5;   // ID hard-coded to 0xA5
         4'hA: reg_data_i = 8'h1;    // Version hard-coded to 0x01
-        4'hB: reg_data_i = status[7:0];         // STATUS Register. bit0 = Global Enable. bit1 = LAST_OP_WAS_WRITE
+        4'hB: reg_data_i = status[7:0];         // STATUS Registewer. bit0 = Global Enable. bit1 = LAST_OP_WAS_WRITE
         4'hC: reg_data_i = pwm_counter;         // COUNTER Register. Contains current value of pwm counter.
         default: reg_data_i = registers[reg_addr];  // default = read from actual registers
     endcase

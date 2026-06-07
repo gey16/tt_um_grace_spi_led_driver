@@ -5,7 +5,7 @@
 ### Key dates
 - **Target shuttle:** TTGF26a (GF180MCU, 180nm, Global Foundries)
 - **Submission deadline:** June 22, 2026
-- **Today:** April 19, 2026
+- **Today:** June 6, 2026
 - **Time to deadline:** ~9 weeks
 - **Expected chip delivery:** Nov 15, 2026
 - **Expected dev board + chip in hand:** Late Nov / Dec 2026
@@ -178,15 +178,16 @@ The register file wraps a user-logic module that drives `uo[0..7]` based on the 
 
 Demo story for MVT: software running on the RP2040 writes patterns (scanner, chase, strobe) to the BRIGHT registers; LEDs follow the pattern. No brightness control, but pattern playback works.
 
-#### Stretch: full 8-channel PWM (if schedule permits)
+#### Stretch: full 8-channel PWM — COMPLETE (Week 7)
 
-- One shared 8-bit free-running counter, gated by a prescaler (divide by `2^PRESCALER`).
-- For each channel `i` in 0..7: `uo[i] = ENABLE && (counter < BRIGHT_i)`.
-- Tick rate formula: `pwm_refresh_hz = asic_clk_hz / (2^PRESCALER * 256)`. With PRESCALER=8 and 50 MHz clock, refresh ≈ 760 Hz (flicker-free).
-- COUNTER register returns live counter value.
-- STATUS: COUNTER_RUNNING becomes live (1 when counter is ticking). PROTO_ERR becomes live (sticky on malformed transactions).
+`uo[i] = ENABLE && (BRIGHT_i == 0xFF || pwm_counter < BRIGHT_i)` for i in 0..7.
 
-Upgrade cost from MVT to stretch: swap one small user-logic module, leave SPI slave + register file + TT wrapper untouched. Tests for the SPI/register portion do not need re-editing.
+- One shared 8-bit free-running counter (`pwm_counter`), gated by a configurable prescaler (divide by `2^PRESCALER`).
+- Tick rate formula: `pwm_refresh_hz = asic_clk_hz / (2^PRESCALER * 256)`. With PRESCALER=8 (default) and 50 MHz clock, refresh ≈ 760 Hz (flicker-free).
+- Boundary cases: BRIGHT=0xFF → always on (bypasses counter compare); BRIGHT=0x00 → always off (unsigned compare, counter never < 0).
+- COUNTER register (0xC) returns live `pwm_counter` value for observability.
+- STATUS: COUNTER_RUNNING and PROTO_ERR remain hardwired to 0 (not implemented — out of scope).
+- Implemented directly in `register_file.sv` alongside the existing register file logic (not a separate module swap).
 
 Patterns (scanner, breathing, fade) are implemented on the RP2040 in software — the chip is a dumb dimming engine (or dumb on/off engine in MVT). This is the correct split: hardware primitive, software flexibility.
 
@@ -205,7 +206,6 @@ Tests to write from scratch:
 - No SPI master. TT dev board's RP2040 is the master.
 - No DMA, no interrupts, no multi-register bursts. Single-register per transaction only.
 - No hardware pattern generation. All LED patterns are software-driven over SPI.
-- MVT: no brightness control (LEDs are on/off only). Stretch adds PWM brightness.
 
 ## Post-silicon bring-up
 
