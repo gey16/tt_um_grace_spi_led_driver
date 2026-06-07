@@ -304,13 +304,14 @@ async def spi_read_tests(dut):
     iterations = 0
 
     # -- Enable LED Outputs -- #
-    # byte1 = 1 000 1000
-    # byte2 = 0000000 1
-    enable_out = 0x1
-    disable_out = 0x0
+    # Default PRESCALAR = 8 (0b1000)
+    # enable  = 1000 0001
+    # disable = 1000 0000
+    enable_out = 0x81
+    disable_out = 0x80
 
-    # byte2 = 1 0000000
-    led_on  = 0x80
+    # byte2 = 1111 1111 (100% PWM)
+    led_on  = 0xFF
     # byte2 = 0 0000000
     led_off = 0x0
 
@@ -372,13 +373,14 @@ async def spi_write_tests(dut):
     while iterations < 3:
 
         # -- Enable LED Outputs -- #
-        # byte1 = 1 000 1000
-        # byte2 = 0000000 1
-        enable_out = 0x1
-        disable_out = 0x0
+        # Default PRESCALAR = 8 (0b1000)
+        # enable  = 1000 0001
+        # disable = 1000 0000
+        enable_out = 0x81
+        disable_out = 0x80
 
-        # byte2 = 1 0000000
-        led_on  = 0x80
+        # byte2 = 1111 1111 (100% PWM)
+        led_on  = 0xFF
         # byte2 = 0 0000000
         led_off = 0x0
 
@@ -431,9 +433,9 @@ async def spi_write_tests(dut):
         await ClockCycles(dut.clk, 10)
         await ClockCycles(dut.clk, 10)
 
-        # Check that all LEDs are OFF when 
+        # Check that all LEDs are OFF when Global disable Set 
         expected_off =  0x0
-        assert int(dut.uo_out.value) == expected_off, f"Unexpected LED ON. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
+        assert int(dut.uo_out.value) == expected_off, f"Unexpected LED ON. Expected: {expected_off:#010b}, Actual: {int(dut.uo_out.value):#010b}"
         dut._log.info(f"after disable → uo_out={int(dut.uo_out.value):#010b}")
 
         # Enable LED Outputs
@@ -472,11 +474,12 @@ async def spi_write_tests(dut):
           await ClockCycles(dut.clk, 10)
           await ClockCycles(dut.clk, 10)
 
-          # Randomize Don't Care bits in Output register 
-          data_i = random.randint(0x00, 0xFF) | led_on
-          await spi_write (dut.clk, dut.uio_in, i, data_i)
-          assert int(dut.uo_out.value[i]) == 0x1, f"LED is not ON. Expected: 0x1, Actual: {int(dut.uo_out.value[i]):#010b}"
-          dut._log.info(f"rand_dc i={i} wrote {data_i:#010b} → uo_out[{i}]={int(dut.uo_out.value[i])}")
+          # ~~~ Only Needed for MVT ~~~ # 
+          # # Randomize Don't Care bits in Output register 
+          # data_i = random.randint(0x00, 0xFF) | led_on
+          # await spi_write (dut.clk, dut.uio_in, i, data_i)
+          # assert int(dut.uo_out.value[i]) == 0x1, f"LED is not ON. Expected: 0x1, Actual: {int(dut.uo_out.value[i]):#010b}"
+          # dut._log.info(f"rand_dc i={i} wrote {data_i:#010b} → uo_out[{i}]={int(dut.uo_out.value[i])}")
 
         # -- Walking Zeros Test -- #
         # GOAL: turn off LEDs 1-by-1 and ensure others stay on
@@ -509,18 +512,17 @@ async def spi_write_tests(dut):
         for loop in range(3):
           expected_on = 0x0
           for i in range(8):
-            # Pick a random value for led register 
-            data_i = random.randint(0x00, 0xFF)
+            # Pick a random state (on/off) for led register 
+            data_i = random.choice([0x00, 0xFF])
             await spi_write (dut.clk, dut.uio_in, i, data_i)
 
             await ClockCycles(dut.clk, 10)
             await ClockCycles(dut.clk, 10)
           
-            # check if in random reg value, led (bit7) is on or off
-            if ((data_i & (1 << 7)) != 0):
-              # If ON (1), update expected output for that bit to 1
+            # LED fully on (0xFF) or fully off (0x00)
+            # If LED randomized to be ON, update the expected_on register
+            if data_i == 0xFF:
               expected_on = expected_on | (1 << i)
-            dut._log.info(f"loop={loop} i={i} data={data_i:#010b} bit7={(data_i>>7)&1} expected_on={expected_on:#010b}")
           
           assert int(dut.uo_out.value) == expected_on, f"Unexpected LED Off. Expected: {expected_on:#010b}, Actual: {int(dut.uo_out.value):#010b}"
           dut._log.info(f"loop={loop} final uo_out={int(dut.uo_out.value):#010b} expected={expected_on:#010b}")
@@ -569,9 +571,12 @@ async def spi_RO_register_tests(dut):
   id_reg = 0x9
   ver_reg = 0xA
   status_reg = 0xB
+  counter_reg = 0xC
 
   id_val = 0xA5
   ver_val = 0x01
+  count_before = 0
+  count_after = 0
 
   #TODO: increase iterations
   while iterations < 3:
@@ -587,6 +592,7 @@ async def spi_RO_register_tests(dut):
     # 0x9 = ID Register --> 0xA5
     # 0xA = Version Register --> 0x01
     # 0xB = Status Register --> b0 = global enable set, b1 = last op was write
+    # 0xC = Counter Register --> stores current value of pwm_counter for controlling brightness
     # 0xB-0xE = Unmapped Registers --> 0x0
     test_val = random.randint(0x00, 0xFF)
     for i in range(0x9, 0x10):
@@ -645,7 +651,14 @@ async def spi_RO_register_tests(dut):
         assert int(read_data) == int(status_val), f"Unexpected Value. Expected: {status_val:#010b}, Actual: {int(read_data):#010b}"
         dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={status_val:#010b}")
         dut._log.info(f"[0x{i:02X}] Status Value (Disable + Read)= 0x{read_data:02X}")
-    
+
+      # Check that value of pwm_counter increments before/after 1000 clock cycles
+      elif (i == counter_reg):
+          count_before = await spi_read(dut.clk, dut.uio_in, dut.uio_out, counter_reg)
+          await ClockCycles(dut.clk, 1000)
+          count_after = await spi_read(dut.clk, dut.uio_in, dut.uio_out, counter_reg)
+          assert int(count_before) != int(count_after), f"PWM Counter did not increment as expected. Count_Before: {count_before:#010b}, Count_After: {count_after:#010b}"
+
       else:
         assert int(read_data) == 0x0, f"Unexpected Value. Expected: {0x0}, Actual: {int(read_data):#010b}"
         dut._log.info(f"Wrote {int(test_val):#010b} → read_data={int(read_data):#010b} expected={0x0}")

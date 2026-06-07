@@ -108,6 +108,14 @@ Example MicroPython (RP2040, SoftSPI):
 import time
 from machine import SoftSPI, Pin
 
+# Set project Clock Speed + Reset Project
+tt.clock_project_PWM(10_000_000)
+tt.reset_project(True)
+import time
+time.sleep_ms(10)
+tt.reset_project(False)
+time.sleep_ms(10)
+
 spi = SoftSPI(baudrate=100_000, polarity=0, phase=0,
               sck=Pin(28), mosi=Pin(26), miso=Pin(27))
 cs = Pin(25, Pin.OUT, value=1)

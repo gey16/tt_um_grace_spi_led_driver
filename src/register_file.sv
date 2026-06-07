@@ -27,7 +27,12 @@ input logic reg_data_i_dv               // pulses HIGH to indicate read ongoing 
 // Internal Signals 
 // Define 16x 8-bit registers 
 logic [REG_W-1:0] registers [0:15];     // 16 registers, each of width 7:0 (8-bits)
-logic [7:0] status;    // 8b status register including "last_op_was_write" and "enable" bits
+logic [7:0] status;     // 8b status register including "last_op_was_write" and "enable" bits
+// LED Brightness signals 
+logic global_en;
+logic [7:0] pwm_counter;    
+logic [15:0] prescalar_cnt;
+logic [3:0] prescalar_val;
 
 // Register Logic
 // At the falling edge of reset (reset asserted) or rising edge of the clock ...
@@ -39,13 +44,14 @@ always_ff @(negedge(rst_n) or posedge(clk)) begin
             registers[i] <= '0;
         end
         status[7:0] <= '0;
+        registers[8] <= 8'h80;      // Default CTRL register value is 0x80
     end 
     
     // Else if our chip is selected (ena = 1)...
     else begin 
         if (ena == 1'b1) begin  
             // Status 0-bit mirrors Global Enable 
-            // Remaining bits driven to 0
+            // Remaining bits assigned to 0
             status[0] <= registers[8][0];
             status[7:2] <= '0; 
 
@@ -64,26 +70,61 @@ always_ff @(negedge(rst_n) or posedge(clk)) begin
     end
 end
 
+// Control LED Brightness 
+always_ff @(negedge(rst_n) or posedge(clk)) begin
+    
+    // If reset asserted, set all led control values to 0
+    if (!rst_n) begin
+        pwm_counter <= '0;
+        prescalar_cnt <= '0;
+    end 
+    
+    // Else if our chip is selected (ena = 1)...
+    else begin 
+        if (ena == 1'b1) begin
+            // Increment Clock Counts (0 --> 2^prescalar -1)
+            if (prescalar_cnt < ((16'h1 << prescalar_val) - 1)) begin
+                prescalar_cnt <= prescalar_cnt + 1;  
+            end
+            // Reset prescalar_cnt and tick pwm_counter every 2^prescalar_val clock cycles
+            else begin
+                prescalar_cnt <= '0;
+                pwm_counter <= pwm_counter + 1;
+            end
+        end
+    end
+end
+
 // Master Read: return contents of register from requested reg_addr
 always_comb begin
     case (reg_addr)
         4'h9: reg_data_i = 8'hA5;   // ID hard-coded to 0xA5
         4'hA: reg_data_i = 8'h1;    // Version hard-coded to 0x01
-        4'hB: reg_data_i = status[7:0];         // STATUS Register. bit0 = Gloabl Enable. bit1 = LAST_OP_WAS_WRITE
-        default: reg_data_i = registers[reg_addr];  // default = write to actual registers
+        4'hB: reg_data_i = status[7:0];         // STATUS Register. bit0 = Global Enable. bit1 = LAST_OP_WAS_WRITE
+        4'hC: reg_data_i = pwm_counter;         // COUNTER Register. Contains current value of pwm counter.
+        default: reg_data_i = registers[reg_addr];  // default = read from actual registers
     endcase
 end
 
+
+
 // Update LED Settings 
-// each led 7:0 mapped to bit 7 of its corresponding register
+// each led 7:0 mapped to its corresponding register
+// each led on when ENABLE=1 and pwm_counter < BRIGHT_i (PWM duty cycle)
+// EXCEPT: 0xFF = always on, 0x00 = always off
 // Enable signal = bit 0 of CTRL register (#8)
-assign uo_out[0] = registers[8][0] && registers[0][7];
-assign uo_out[1] = registers[8][0] && registers[1][7];
-assign uo_out[2] = registers[8][0] && registers[2][7];
-assign uo_out[3] = registers[8][0] && registers[3][7];
-assign uo_out[4] = registers[8][0] && registers[4][7];
-assign uo_out[5] = registers[8][0] && registers[5][7];
-assign uo_out[6] = registers[8][0] && registers[6][7];
-assign uo_out[7] = registers[8][0] && registers[7][7];
+assign prescalar_val = registers[8][7:4];
+assign global_en = registers[8][0];
+always_comb begin
+    for (int i = 0; i < 8; i++) begin
+        // If LED fully on (0xFF), set output equal to Global Enable 
+        if (registers[i] == 8'hFF) begin
+            uo_out[i] = global_en;
+        end
+        else begin
+            uo_out[i] = global_en && (pwm_counter < registers[i]);
+        end
+    end
+end
 
 endmodule
