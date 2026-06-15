@@ -11,12 +11,11 @@ You can also include images in this folder and reference them in the markdown. E
 
 This chip is an SPI-controlled 8-channel LED driver. An SPI master (such as the RP2040/RP2350 on the Tiny Tapeout dev board) communicates with the chip over a 4-wire SPI interface (CS, SCLK, MOSI, MISO). Each SPI transaction is 16 bits: the first byte selects a register address and direction (read or write), and the second byte carries the data.
 
-Internally, the chip contains a 16-register file (9 read/write, 7 read-only). Eight BRIGHT registers (0x0–0x7) control 8 LED outputs on `uo_out[0..7]`. 
+Internally, the chip contains a 16-register file (9 read/write, 7 read-only). Eight BRIGHT registers (0x0–0x7) set the PWM brightness of 8 LED outputs on `uo_out[0..7]`.
 
-Each LED output is gated by a global ENABLE bit in the CTRL register: `uo_out[n] = ENABLE && BRIGHT_n[7]`. 
-Bit 7 of each BRIGHT register controls its LED: 
--- LED ON: Set bit 7 to 1 (e.g. write `0x80`)
--- LED OFF: set bit 7 to 0 (e.g. write `0x00`) 
+A shared 8-bit counter (`pwm_counter`) cycles 0→255, ticking every `2^PRESCALER` system clock cycles. Each LED output is: `uo_out[n] = ENABLE && (pwm_counter < BRIGHT_n)`, with two special cases: BRIGHT=0xFF → always on, BRIGHT=0x00 → always off. Intermediate values set duty cycle: e.g. 0x80 = 50%, 0x40 = 25%.
+
+With the default PRESCALER=8 and a 50 MHz system clock, PWM refresh rate ≈ 760 Hz (flicker-free).
 
 SPI input signals (CS, SCLK, MOSI) are passed through 2-flop synchronizers before entering the SPI FSM, safely crossing from the asynchronous SPI clock domain into the chip's 50 MHz system clock domain.
 
@@ -70,19 +69,20 @@ MISO:  0       0            0         0 (write)    | data (read)
 
 | Address | Name | Access | Reset | Description |
 |---------|------|--------|-------|-------------|
-| 0x0 | `BRIGHT_0` | RW | 0x00 | LED 0 control. Bit[7]=1: on, Bit[7]=0: off |
-| 0x1 | `BRIGHT_1` | RW | 0x00 | LED 1 control |
-| 0x2 | `BRIGHT_2` | RW | 0x00 | LED 2 control |
-| 0x3 | `BRIGHT_3` | RW | 0x00 | LED 3 control |
-| 0x4 | `BRIGHT_4` | RW | 0x00 | LED 4 control |
-| 0x5 | `BRIGHT_5` | RW | 0x00 | LED 5 control |
-| 0x6 | `BRIGHT_6` | RW | 0x00 | LED 6 control |
-| 0x7 | `BRIGHT_7` | RW | 0x00 | LED 7 control |
-| 0x8 | `CTRL` | RW | 0x00 | Bit[0]: ENABLE — gates all LED outputs globally |
+| 0x0 | `BRIGHT_0` | RW | 0x00 | PWM brightness for LED 0. 0x00=off, 0xFF=always on, 0x01–0xFE=duty cycle (value/256) |
+| 0x1 | `BRIGHT_1` | RW | 0x00 | PWM brightness for LED 1 |
+| 0x2 | `BRIGHT_2` | RW | 0x00 | PWM brightness for LED 2 |
+| 0x3 | `BRIGHT_3` | RW | 0x00 | PWM brightness for LED 3 |
+| 0x4 | `BRIGHT_4` | RW | 0x00 | PWM brightness for LED 4 |
+| 0x5 | `BRIGHT_5` | RW | 0x00 | PWM brightness for LED 5 |
+| 0x6 | `BRIGHT_6` | RW | 0x00 | PWM brightness for LED 6 |
+| 0x7 | `BRIGHT_7` | RW | 0x00 | PWM brightness for LED 7 |
+| 0x8 | `CTRL` | RW | 0x80 | Bits[7:4]: PRESCALER (counter ticks every 2^PRESCALER cycles, default=8). Bits[3:1]: reserved. Bit[0]: ENABLE (1=LEDs active, 0=all off) |
 | 0x9 | `ID` | RO | 0xA5 | Fixed magic byte — read to verify SPI is working |
 | 0xA | `VERSION` | RO | 0x01 | Design version |
-| 0xB | `STATUS` | RO | — | Bit[0]: mirrors CTRL ENABLE. Bit[1]: 1 = "Last Op was Write" |
-| 0xC–0xF | `RESERVED` | RO | 0x00 | Reserved, always returns 0x00 |
+| 0xB | `STATUS` | RO | 0x00 | Bit[0]: mirrors CTRL ENABLE. Bit[1]: 1 after a write, 0 after a read. Bits[7:2]: reserved, read 0 |
+| 0xC | `COUNTER` | RO | — | Current value of the free-running PWM counter (0–255). Useful for debug |
+| 0xD–0xF | `RESERVED` | RO | 0x00 | Reserved, always returns 0x00 |
 
 Writes to addresses 0x9–0xF are silently dropped.
 
@@ -98,9 +98,10 @@ Recommended bring-up sequence (each step must pass before the next is meaningful
 2. **Address decode** — Read VERSION (0xA). Expect `0x01`.
 3. **RW loopback** — Write `0xA5` to BRIGHT_0 (0x0), read back. Expect `0xA5`. Repeat with `0x5A`.
 4. **RO protection** — Write `0xFF` to ID (0x9), read back. Expect `0xA5` (write was dropped).
-5. **ENABLE control** — Write `0x01` to CTRL (0x8). Read STATUS (0xB), expect bit[0]=1.
-6. **LED output** — With ENABLE=1, write `0x80` to BRIGHT_0 (0x0). `uo_out[0]` should go high (LED lights). Write `0x00` — LED off.
+5. **ENABLE control** — Write `0x81` to CTRL (0x8) (PRESCALER=8, ENABLE=1). Read STATUS (0xB), expect bit[0]=1.
+6. **LED output** — With ENABLE=1, write `0xFF` to BRIGHT_0 (0x0). `uo_out[0]` should go high (always on). Write `0x80` — 50% brightness. Write `0x00` — LED off.
 7. **All channels** — Repeat step 6 for BRIGHT_1–BRIGHT_7 to verify all 8 outputs.
+8. **COUNTER live** — Read COUNTER (0xC) twice with a short delay between. Values should differ (counter is free-running).
 
 Example MicroPython (RP2040, SoftSPI):
 
@@ -152,14 +153,15 @@ assert c1 != c2, "counter not incrementing!"
 print(f"counter: {c1} → {c2}")
 
 
-# Enable LEDs and light up channel 0
-spi_write(0x8, 0x01)   # CTRL: ENABLE=1
-spi_write(0x0, 0x80)   # BRIGHT_0: LED on
-spi_write(0x0, 0x00)   # BRIGHT_0: LED off
+# Enable LEDs (PRESCALER=8, ENABLE=1) and test channel 0
+spi_write(0x8, 0x81)   # CTRL: PRESCALER=8, ENABLE=1
+spi_write(0x0, 0xFF)   # BRIGHT_0: always on
+spi_write(0x0, 0x80)   # BRIGHT_0: 50% brightness
+spi_write(0x0, 0x00)   # BRIGHT_0: off
 
-# Light all 8x LEDs one at a time 
+# Light all 8x LEDs one at a time (full brightness)
 for i in range(8):
-    spi_write(i, 0x80)
+    spi_write(i, 0xFF)
     time.sleep_ms(500)
 
 # Test PWM Control

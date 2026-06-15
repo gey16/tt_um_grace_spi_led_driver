@@ -782,3 +782,97 @@ async def spi_RO_register_tests(dut):
         dut._log.info(f"[0x{i:02X}] Unused Register Value = 0x{read_data:02X}")
 
     iterations = iterations + 1
+
+@cocotb.test()
+async def spi_prescaler_tests(dut):
+  dut._log.info("Starting SPI Prescaler Rate Tests")
+
+  # Set the clock period to 10 us (100 KHz)
+  clock = Clock(dut.clk, 10, unit="us")
+  cocotb.start_soon(clock.start())
+
+  # Reset
+  dut._log.info("Reset")
+  dut.ena.value = 1
+  dut.ui_in.value = 0
+  dut.uio_in.value = 0
+  dut.rst_n.value = 0
+  await ClockCycles(dut.clk, 10)
+  dut.rst_n.value = 1
+
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # CPOL = 0, SPI_CLK low in idle
+  temp = dut.uio_in.value
+  result = spi_clk_low(temp)
+  dut.uio_in.value = result
+
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  counter_reg = 0xC
+  window = 4000   # system clocks between the two counter reads
+
+  # Helper: measure how far the counter advances over a fixed window
+  # for a given PRESCALER value. Returns the delta (mod 256 for wrap safety).
+  async def measure_delta(prescaler):
+    ctrl_val = (prescaler << 4) | 0x1     # PRESCALER + ENABLE=1
+    await spi_write(dut.clk, dut.uio_in, 8, ctrl_val)
+    await ClockCycles(dut.clk, 10)
+    before = int(await spi_read(dut.clk, dut.uio_in, dut.uio_out, counter_reg))
+    await ClockCycles(dut.clk, window)
+    after = int(await spi_read(dut.clk, dut.uio_in, dut.uio_out, counter_reg))
+    return (after - before) % 256
+
+  # Lower prescaler => counter ticks faster => larger delta.
+  # Use 6 (tick every 64 clk) vs 8 (tick every 256 clk).
+  delta_fast = await measure_delta(6)
+  delta_slow = await measure_delta(8)
+  dut._log.info(f"PRESCALER=6 delta={delta_fast}, PRESCALER=8 delta={delta_slow}")
+
+  # #2: counter must actually advance (stronger than "!= before")
+  assert delta_fast > 0, f"Counter did not advance at PRESCALER=6 (delta={delta_fast})"
+  assert delta_slow > 0, f"Counter did not advance at PRESCALER=8 (delta={delta_slow})"
+
+  # #1: a smaller prescaler must advance the counter strictly faster
+  assert delta_fast > delta_slow, f"Prescaler had no effect on rate. PRESCALER=6 delta={delta_fast}, PRESCALER=8 delta={delta_slow}"
+
+@cocotb.test()
+async def spi_reset_default_tests(dut):
+  dut._log.info("Starting SPI Reset Default Tests")
+
+  # Set the clock period to 10 us (100 KHz)
+  clock = Clock(dut.clk, 10, unit="us")
+  cocotb.start_soon(clock.start())
+
+  # Reset
+  dut._log.info("Reset")
+  dut.ena.value = 1
+  dut.ui_in.value = 0
+  dut.uio_in.value = 0
+  dut.rst_n.value = 0
+  await ClockCycles(dut.clk, 10)
+  dut.rst_n.value = 1
+
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # CPOL = 0, SPI_CLK low in idle
+  temp = dut.uio_in.value
+  result = spi_clk_low(temp)
+  dut.uio_in.value = result
+
+  await ClockCycles(dut.clk, 10)
+  await ClockCycles(dut.clk, 10)
+
+  # CTRL (0x8) must reset to 0x80 (PRESCALER=8, ENABLE=0)
+  ctrl = await spi_read(dut.clk, dut.uio_in, dut.uio_out, 0x8)
+  assert int(ctrl) == 0x80, f"CTRL reset wrong. Expected: 0x80, Actual: {int(ctrl):#04x}"
+  dut._log.info(f"CTRL reset value = {int(ctrl):#04x}")
+
+  # All 8 BRIGHT registers must reset to 0x00
+  for i in range(8):
+    bright = await spi_read(dut.clk, dut.uio_in, dut.uio_out, i)
+    assert int(bright) == 0x00, f"BRIGHT_{i} reset wrong. Expected: 0x00, Actual: {int(bright):#04x}"
+  dut._log.info("All BRIGHT registers reset to 0x00")
