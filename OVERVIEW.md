@@ -150,6 +150,51 @@ Git: branch `dev/grace`, repo at `git@github.com:geysenbach/tt_um_grace_spi_led.
 
 ---
 
+## Running on the FPGA (TT Demoboard)
+
+Use this when you want to test the latest RTL on the FPGA before submission. Run from the **project root** (`tt_um_grace_spi_led_driver/`).
+
+**Step 1 — Activate OSS-CAD-Suite** (in a fresh terminal, not the venv terminal):
+```bash
+source /Users/grace/Career/AI_ChipDesign/tiny_tapeout/software/oss-cad-suite/environment
+```
+
+**Step 2 — Add venv to PATH** (so `mpremote` is found during upload):
+```bash
+export PATH="/Users/grace/Career/AI_ChipDesign/tiny_tapeout/tt/venv/bin:$PATH"
+```
+
+**Step 3 — Build the bitstream:**
+```bash
+../venv/bin/python tt-support-tools/tt_fpga.py harden
+```
+Output: `build/tt_um_grace_spi_led_driver.bin`
+
+**Step 4 — Upload to the demoboard:**
+```bash
+../venv/bin/python tt-support-tools/tt_fpga.py configure --upload --port /dev/tty.usbmodem1101
+```
+The board does **not** mount as a USB drive — upload goes over serial via `mpremote`.
+
+**Step 5 — Open the MicroPython REPL:**
+```bash
+mpremote connect /dev/tty.usbmodem1101 repl
+```
+Then import and initialize the `tt` object, select your project, and test:
+```python
+from ttboard.demoboard import DemoBoard
+tt = DemoBoard.get()
+tt.clock_project_PWM(10_000_000)
+tt.reset_project(True); tt.reset_project(False)
+```
+
+**Notes:**
+- Port is `/dev/tty.usbmodem1101` on this Mac — confirm with `ls /dev/tty.*` if upload fails
+- Steps 1 and 2 must be repeated each time you open a new terminal
+- OSS-CAD-Suite and venv can coexist in the same terminal as long as Step 2 is run after Step 1
+
+---
+
 ## Key files in the repo
 
 | File | Description |
@@ -250,6 +295,19 @@ Exit criterion: Stretch RTL passes CI, or final MVT polish complete.
 - Multi-LED test updated to use `random.choice([0x00, 0xFF])` instead of `random.randint`
 - RO register test extended: register 0xC (COUNTER) verified to increment over 1000 cycles
 - `spi_read_tests`, `spi_write_tests`, `spi_RO_register_tests` — **all 3 passing**
+
+**New `spi_pwm_tests` suite (Jun 14):**
+- Single-channel duty cycle: writes random BRIGHT, reads counter, asserts LED state matches `counter < BRIGHT` with buffer guard for danger zone
+- Multi-channel independence: writes different BRIGHT values to all 8 channels, reads counter once, verifies each LED state independently using valid_mask to skip danger-zone channels
+- All 4 cocotb test suites passing
+
+**FPGA verification (Jun 14):**
+- Rebuilt bitstream with PWM RTL via `tt_fpga.py harden` + `configure --upload`
+- PWM dimming verified on TT demoboard 7-segment display: brightness levels 0x20/0x80/0xC0/0xFF visible and distinct
+- Multi-channel PWM: all 8 segments cycle through brightness levels together
+- Party mode: random per-channel brightness confirmed working
+- STATUS register: LAST_OP_WAS_WRITE toggles correctly after write vs read; ENABLE mirrors CTRL on hardware
+- COUNTER register: live `pwm_counter` confirmed incrementing (44→68 in 50ms)
 
 **GitHub Actions status:**
 - GDS: PASS

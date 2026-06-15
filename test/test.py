@@ -616,6 +616,33 @@ async def spi_pwm_tests(dut):
     dut._log.info(f"PWM Counter = {pwm_counter:#04x}")
     assert int(dut.uo_out.value) == expected_state, f"Unexpected LED State. Expected: {expected_state:#010b}, Actual: {int(dut.uo_out.value):#010b}"
 
+  # -- Multi-Channel LED Brightness Test -- #
+  # Turn off ALL LEDs first
+  for j in range(8):
+    await spi_write(dut.clk, dut.uio_in, j, led_off)
+
+  brightness_vals = []
+  for i in range(8):
+    pwm_brightness = random.randint(0x01, 0xFE)
+    await spi_write(dut.clk, dut.uio_in, i, pwm_brightness)
+    brightness_vals.append(pwm_brightness)
+
+  # Read counter once after all 8 channels written
+  pwm_counter = await spi_read(dut.clk, dut.uio_in, dut.uio_out, 0xC)
+
+  expected_state = 0x0
+  valid_mask = 0x0
+  for i in range(8):
+    if pwm_counter < (brightness_vals[i] - buffer):
+      expected_state |= (1 << i)
+      valid_mask |= (1 << i)
+    elif pwm_counter >= (brightness_vals[i] + buffer):
+      valid_mask |= (1 << i)
+    # else: danger zone — skip channel
+
+  dut._log.info(f"Multi-channel PWM Counter = {pwm_counter:#04x}")
+  dut._log.info(f"Expected State = {expected_state:#010b}, Valid Mask = {valid_mask:#010b}")
+  assert (int(dut.uo_out.value) & valid_mask) == expected_state, f"Unexpected LED State. Expected: {expected_state:#010b}, Actual: {int(dut.uo_out.value):#010b}"
 
 
 # 1. write a random brightness level 

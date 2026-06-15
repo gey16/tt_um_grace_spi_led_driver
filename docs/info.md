@@ -107,6 +107,7 @@ Example MicroPython (RP2040, SoftSPI):
 ```python
 import time
 from machine import SoftSPI, Pin
+import random
 
 # Set project Clock Speed + Reset Project
 tt.clock_project_PWM(10_000_000)
@@ -136,6 +137,21 @@ def spi_read(addr):
 assert spi_read(0x9) == 0xA5    # ID = 0xA5
 assert spi_read(0xA) == 0x01    # Version = 0x01
 
+# STATUS register checks
+spi_write(0x8, 0x81)                    # write to CTRL
+assert spi_read(0xB) & 0x02 != 0       # LAST_OP_WAS_WRITE=1
+spi_read(0xB)                           # read STATUS
+assert spi_read(0xB) & 0x02 == 0       # LAST_OP_WAS_WRITE=0
+assert spi_read(0xB) & 0x01 != 0       # ENABLE=1 mirrors CTRL
+
+# COUNTER register — verify it's live
+c1 = spi_read(0xC)
+time.sleep_ms(50)
+c2 = spi_read(0xC)
+assert c1 != c2, "counter not incrementing!"
+print(f"counter: {c1} → {c2}")
+
+
 # Enable LEDs and light up channel 0
 spi_write(0x8, 0x01)   # CTRL: ENABLE=1
 spi_write(0x0, 0x80)   # BRIGHT_0: LED on
@@ -144,6 +160,20 @@ spi_write(0x0, 0x00)   # BRIGHT_0: LED off
 # Light all 8x LEDs one at a time 
 for i in range(8):
     spi_write(i, 0x80)
-    time.sleep(1)
+    time.sleep_ms(500)
 
+# Test PWM Control
+spi_write(0x8, 0x81)   # CTRL: PRESCALER=8, ENABLE=1
+for brightness in [0x20, 0x80, 0xC0, 0xFF, 0x00]:
+    for i in range(8):
+        spi_write(i, brightness)
+    time.sleep_ms(500)
+
+# Party Mode
+spi_write(0x8, 0x81)   # CTRL: PRESCALER=8, ENABLE=1
+for _ in range(30):
+    for i in range(8):
+        brightness = random.choice([0x00, 0x20, 0x40, 0x80, 0xC0, 0xFF])
+        spi_write(i, brightness)
+    time.sleep_ms(150)
 ```
